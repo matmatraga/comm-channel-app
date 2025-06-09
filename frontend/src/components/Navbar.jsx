@@ -30,6 +30,13 @@ const Navbar = () => {
         style={({ isActive }) => (isActive ? activeStyle : undefined)}
       >
         Register
+      </NavLink>{' '}
+      |{' '}
+      <NavLink
+        to="/logout"
+        style={({ isActive }) => (isActive ? activeStyle : undefined)}
+      >
+        Logout
       </NavLink>
     </nav>
   );
