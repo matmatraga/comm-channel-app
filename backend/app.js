@@ -1,19 +1,28 @@
-const expressApp = require('express');
-const mongooseApp = require('mongoose');
+const express = require('express');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes');
-const emailRoutes = require('./routes/emailRoutes');
-const attachmentRoutes = require('./routes/attachmentRoutes');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
-const passport = require('passport');
 const session = require('express-session');
+const passport = require('passport');
 const path = require('path');
 
+// Load env variables and config
 dotenv.config();
-
 require('./config/passport');
 
-const app = expressApp();
+// App & Server Initialization
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    credentials: true,
+  },
+});
+
+// Middlewares
 app.use(cors({
   origin: ['http://localhost:5173'],
   credentials: true,
@@ -21,7 +30,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(expressApp.json());
+app.use(express.json());
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -32,13 +41,31 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/emails', emailRoutes);
-app.use('/api/attachments', attachmentRoutes);
-                   
-mongooseApp.connect(process.env.MONGO_URI)
+// Static file serving (Chat Attachments)
+app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads', 'chat')));
 
-.then(() => {
-  app.listen(5000, () => console.log('Server running on port 5000'));
-})
-.catch((err) => console.error(err));
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/emails', require('./routes/emailRoutes'));
+app.use('/api/attachments', require('./routes/attachmentRoutes'));
+app.use('/api/chats', require('./routes/chatRoutes')); // ✅ Chat messages route
+
+// Socket.IO Logic
+io.on('connection', (socket) => {
+  console.log('🔌 New client connected:', socket.id);
+
+  socket.on('sendMessage', (msg) => {
+    socket.broadcast.emit('receiveMessage', msg);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Client disconnected:', socket.id);
+  });
+});
+
+// MongoDB Connection + Server Start
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    server.listen(5000, () => console.log('🚀 Server running on port 5000'));
+  })
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
