@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Logout from './pages/Logout';
 import Email from './pages/Email';
+import ChatBox from './pages/ChatBox';
 
 function App() {
 
@@ -14,6 +15,7 @@ function App() {
       <Router>
         <Navbar />
         <Routes>
+          <Route path="/chatbox" element={<ChatBox />} />
           <Route path="/email" element={<Email />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
