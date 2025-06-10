@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Logout from './pages/Logout';
+import Email from './pages/Email';
 
 function App() {
 
@@ -13,6 +14,7 @@ function App() {
       <Router>
         <Navbar />
         <Routes>
+          <Route path="/email" element={<Email />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
