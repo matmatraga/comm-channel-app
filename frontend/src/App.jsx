@@ -16,7 +16,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route
-            path="/chatbox/:recipientEmail"
+            path="/chatbox"
             element={<ChatBox />}
           />
           <Route path="/email" element={<Email />} />

@@ -3,72 +3,110 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import { useSearchParams, useParams } from 'react-router-dom';
 
-const socket = io('http://localhost:5000');
+const socket = io('http://localhost:5000', {
+  auth: {token: localStorage.getItem('token') || ''}
+});
 
 const ChatBox = () => {
-    const { recipientEmail } = useParams();
     const [message, setMessage] = useState('');
     const [file, setFile] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [currentUserEmail, setCurrentUserEmail] = useState('');
-    const [searchParams] = useSearchParams();
+    const [currentUser, setCurrentUser] = useState({});
+    const [users, setUsers] = useState([]);
+    const [selectedReceiver, setSelectedReceiver] = useState(null);
 
   useEffect(() => {
-  const storedUser = JSON.parse(localStorage.getItem('user'));
-  if (storedUser?.email) {
-    setCurrentUserEmail(storedUser.email);
-  }
 
-  if (storedUser?.email && recipientEmail) {
-    fetchChats(storedUser.email, recipientEmail);
-  }
+    storedUser();
+    userDetails();
 
-  socket.on('receiveMessage', (msg) => {
-    if (msg.receiver.email === storedUser?.email) {
-      setMessages(prev => [...prev, msg]);
+    socket.on('private_message', (data) => {
+      console.log("📥 Received:", data);
+      setMessages(prev => [...prev, {
+        from: data.from,
+        content: data.content,
+        file: data.file,
+        timestamp: new Date(data.timestamp).toLocaleDateString()
+      }]);
+    });
+
+   
+
+    return () => socket.off('private_message');
+  }, []);
+
+  // useEffect(() => {
+  //   console.log('Current User:', currentUser);
+  //   console.log(users);
+  // }, [currentUser, users]);
+
+  const storedUser = async () => {
+    const { data } = await axios.get('http://localhost:5000/api/users/currentUser', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`
     }
-  });
+  })
+  console.log(data);
+  setCurrentUser(data);
+}
 
-  return () => socket.off('receiveMessage');
-}, [recipientEmail]);
-
-
-  const fetchChats = async (senderEmail, receiverEmail) => {
-    const { data } = await axios.get(`http://localhost:5000/api/chats/${senderEmail}/${receiverEmail}`);
-    setMessages(data);
-  };
+  
+  const userDetails = async () => {
+      const {data} = await axios.get('http://localhost:5000/api/users/details', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    setUsers(data);
+  }
 
   const sendMessage = async (e) => {
     e.preventDefault();
     
     console.log('About to send:', {
-        senderEmail: currentUserEmail,
-        receiverEmail: recipientEmail,
+        sender: currentUser._id,
+        receiver: users[2]?._id,
         message,
-        file,
+        file
     });
-    if (!currentUserEmail || !recipientEmail) return;
+
+    if (!currentUser._id || !users[2]?._id) return;
+
+    // const outgoingMessage = {
+    //   from: currentUser,
+    //   content: message,
+    //   file: file ? file.name : null,
+    //   timestamp: new Date().toISOString()
+    // }
+    // setMessages(prev => [...prev, outgoingMessage]);
 
     const formData = new FormData();
-    formData.append('senderEmail', currentUserEmail);
-    formData.append('receiverEmail', recipientEmail);
+    formData.append('senderEmail', currentUser._id);
+    formData.append('receiverEmail', users[2]?._id);
     formData.append('message', message);
     if (file) formData.append('file', file);
-
-
-    const { data } = await axios.post('http://localhost:5000/api/chats', formData);
-    socket.emit('sendMessage', data);
-    setMessages(prev => [...prev, data]);
+    // console.log('Form Data:', formData);
+    
+    socket.emit('private_message', {from: currentUser._id, to: users[2]?._id, content: {message, file}});
+    // socket.on('private_message', (data) => {
+    // setMessages(prev => [...prev, {
+    //     from: data.from,
+    //     content: data.content,
+    //     file: data.file,
+    //     timestamp: new Date(data.timestamp).toLocaleDateString()
+    //   }]);
+    // });
     setMessage('');
     setFile(null);
   };
 
+  
   return (
     <div className="chat-box p-4 border rounded">
       <div className="messages mb-3" style={{ maxHeight: '300px', overflowY: 'scroll' }}>
         {messages.map((msg, i) => (
-          <div key={i} className={`mb-2 ${msg.sender.email === currentUserEmail ? 'text-end' : 'text-start'}`}>
-            <div><strong>{msg.sender.email}</strong>: {msg.message}</div>
+          <div key={i} className={`mb-2 ${msg.from.name === currentUser.name ? 'text-end' : 'text-start'}`}>
+            <div><strong>{msg.from.name}</strong>: {msg.content}</div>
             {msg.file && (
               <a
                 href={`http://localhost:5000/uploads/chat/${msg.file}`}

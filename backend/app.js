@@ -7,6 +7,7 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
+const Socket = require('./middlewares/io');
 
 // Load env variables and config
 dotenv.config();
@@ -48,20 +49,11 @@ app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads', 'chat'))
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/emails', require('./routes/emailRoutes'));
 app.use('/api/attachments', require('./routes/attachmentRoutes'));
-app.use('/api/chats', require('./routes/chatRoutes')); // ✅ Chat messages route
+app.use('/api/chats', require('./routes/chatRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 
 // Socket.IO Logic
-io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
-
-  socket.on('sendMessage', (msg) => {
-    socket.broadcast.emit('receiveMessage', msg);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('❌ Client disconnected:', socket.id);
-  });
-});
+Socket(io);
 
 // MongoDB Connection + Server Start
 mongoose.connect(process.env.MONGO_URI)
