@@ -3,6 +3,8 @@ const twilio = require('twilio');
 const { VoiceResponse } = twilio.twiml;
 
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+console.log(client);
+console.log(process.env.TWILIO_TWIML_APP_SID)
 
 exports.makeCall = async (req, res) => {
   try {
@@ -30,6 +32,7 @@ exports.makeCall = async (req, res) => {
 };
 
 exports.voiceWebhook = async (req, res) => {
+    console.log('[VOICE WEBHOOK HIT]', req.body);
   const { CallSid, From, To, CallStatus, Direction, Duration } = req.body;
   const twiml = new VoiceResponse();
 
