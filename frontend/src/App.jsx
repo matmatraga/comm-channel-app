@@ -17,13 +17,9 @@ function App() {
       <Router>
         <Navbar />
         <Routes>
-          <Route
-            path="/chatbox"
-            element={<ChatBox />}
-          />
           <Route path="/voice" element={<Voice />} />
           <Route path="/sms" element={<SMS />} />
-          <Route path="/chatbox" element={<ChatBox />} />
+          <Route path="/chat" element={<ChatBox />} />
           <Route path="/email" element={<Email />} />
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />

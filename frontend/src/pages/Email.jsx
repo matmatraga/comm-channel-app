@@ -54,23 +54,23 @@ const EmailForm = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://omni-channel-app.onrender.com/api/emails/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: data,
-      });
 
-      const result = await response.json();
-      if (response.ok) {
-        setStatus('Email sent successfully!');
-      } else {
-        setStatus(result.error || 'Failed to send email.');
-      }
+      const response = await axios.post(
+        'https://omni-channel-app.onrender.com/api/emails/send',
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      setStatus('Email sent successfully!');
     } catch (error) {
       console.error('Error sending email:', error);
-      setStatus('An error occurred.');
+      const errorMessage = error.response?.data?.error || 'Failed to send email.';
+      setStatus(errorMessage);
     }
   };
 
