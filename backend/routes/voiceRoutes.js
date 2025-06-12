@@ -6,7 +6,7 @@ router.post('/call', voiceController.makeCall);
 router.post('/voice-response', express.urlencoded({ extended: false }), voiceController.voiceWebhook);
 router.get('/history', voiceController.getCallHistory);
 // routes/voiceRoutes.js
-router.get('/token', voiceController.generateToken);
+router.get('/token', voiceController.getToken);
 
 
 module.exports = router;
