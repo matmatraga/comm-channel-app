@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://abec-136-158-78-140.ngrok-free.app/'],
+  origin: ['*'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
