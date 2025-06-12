@@ -42,7 +42,7 @@ const ChatBox = () => {
   // }, [currentUser, users]);
 
   const storedUser = async () => {
-    const { data } = await axios.get('http://https://omni-channel-app.onrender.com//api/users/currentUser', {
+    const { data } = await axios.get('http://https://omni-channel-app.onrender.com/api/users/currentUser', {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`
     }
@@ -53,7 +53,7 @@ const ChatBox = () => {
 
   
   const userDetails = async () => {
-      const {data} = await axios.get('http://https://omni-channel-app.onrender.com//api/users/details', {
+      const {data} = await axios.get('http://https://omni-channel-app.onrender.com/api/users/details', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -110,7 +110,7 @@ const ChatBox = () => {
             <div><strong>{msg.from.name}</strong>: {msg.content}</div>
             {msg.file && (
               <a
-                href={`http://https://omni-channel-app.onrender.com//uploads/chat/${msg.file}`}
+                href={`http://https://omni-channel-app.onrender.com/uploads/chat/${msg.file}`}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
