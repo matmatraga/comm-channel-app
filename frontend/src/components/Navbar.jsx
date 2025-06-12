@@ -22,10 +22,6 @@ const Navbar = () => {
         Register
       </NavLink>{' '}
       |{' '}
-      <NavLink to="/logout" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
-        Logout
-      </NavLink>{' '}
-      |{' '}
       <NavLink to="/chat" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
         Chat
       </NavLink>{' '}
@@ -36,7 +32,16 @@ const Navbar = () => {
       |{' '}
       <NavLink to="/voice" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
         Voice
-      </NavLink>
+      </NavLink>{' '}
+      |{' '}
+      <NavLink to="/email" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
+        Email
+      </NavLink>{' '}
+      |{' '}
+      <NavLink to="/logout" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
+        Logout
+      </NavLink>{' '}
+      |{' '}
     </nav>
   );
 };
