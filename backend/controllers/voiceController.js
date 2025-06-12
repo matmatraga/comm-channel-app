@@ -7,8 +7,9 @@ const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 exports.makeCall = async (req, res) => {
   try {
     const { to } = req.body;
+    console.log('📞 Outbound call request body:', req.body);
     const call = await client.calls.create({
-      url: `${process.env.BASE_URL}/api/voice/voice-response`,
+      url: `https://omni-channel-app.onrender.com/api/voice/voice-response`,
       to,
       from: process.env.TWILIO_PHONE
     });
