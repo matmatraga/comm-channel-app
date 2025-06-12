@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 import { useSearchParams, useParams } from 'react-router-dom';
 
-const socket = io('http://localhost:5000', {
+const socket = io('http://https://omni-channel-app.onrender.com/', {
   auth: {token: localStorage.getItem('token') || ''}
 });
 
@@ -54,10 +55,18 @@ const ChatBox = () => {
     console.log(data);
     setCurrentUser(data);
   }
+    const { data } = await axios.get('http://https://omni-channel-app.onrender.com//api/users/currentUser', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    }
+  })
+  console.log(data);
+  setCurrentUser(data);
+}
 
   
   const userDetails = async () => {
-      const {data} = await axios.get('http://localhost:5000/api/users/details', {
+      const {data} = await axios.get('http://https://omni-channel-app.onrender.com//api/users/details', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -126,7 +135,7 @@ const ChatBox = () => {
             <div><strong>{msg.from.name}</strong>: {msg.content}</div>
             {msg.file && (
               <a
-                href={`http://localhost:5000/uploads/chat/${msg.file}`}
+                href={`http://https://omni-channel-app.onrender.com//uploads/chat/${msg.file}`}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
@@ -151,7 +160,6 @@ const ChatBox = () => {
         <button className="btn btn-primary" type="submit">Send</button>
       </form>
     </div>
-  );
-};
+);
 
 export default ChatBox;

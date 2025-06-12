@@ -26,7 +26,7 @@ const EmailAccordion = ({ emails }) => {
     return attachments.map((attachment, idx) => (
       <a
         key={idx}
-        href={`http://localhost:5000/api/attachments/${encodeURIComponent(
+        href={`http://https://omni-channel-app.onrender.com//api/attachments/${encodeURIComponent(
           attachment.generatedName || attachment.filename || attachment.name
         )}`}
         className="btn btn-sm btn-outline-secondary me-2 mb-2"
