@@ -28,18 +28,16 @@ module.exports = (io) => {
                 file: content.file?.name || null
             });
 
-            const payload = {
-                from: socket.user,
-                content: chat.message,
-                file: chat.file,
-                timestamp: chat.createdAt
-            };
-
-            for (const [id, s] of io.of('/').sockets) {
-                if (s.user.id === to || s.user.id === socket.user.id) {
-                    s.emit('private_message', payload);
-                
-            }
+            for(const [id, s] of io.of('/').sockets){
+                if(s.user.id === to){
+                    s.emit('private_message', {
+                        from: socket.user,
+                        content: chat.message,
+                        file: chat.file,
+                        timestamp: chat.createdAt
+                    });
+                    break;
+                }
 
                 console.log(s.user.id, 'sender');
                 console.log(s.user.id === to);
