@@ -1,102 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
-import { useSearchParams, useParams } from 'react-router-dom';
 
 const socket = io('https://omni-channel-app.onrender.com', {
-  auth: {token: localStorage.getItem('token') || ''}
+  auth: { token: localStorage.getItem('token') || '' }
 });
 
 const ChatBox = () => {
-    const [message, setMessage] = useState('');
-    const [file, setFile] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [currentUser, setCurrentUser] = useState({});
-    const [users, setUsers] = useState([]);
-    const [selectedReceiver, setSelectedReceiver] = useState(null);
+  const [message, setMessage] = useState('');
+  const [file, setFile] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [currentUser, setCurrentUser] = useState({});
+  const [users, setUsers] = useState([]);
+  const [selectedReceiver, setSelectedReceiver] = useState(null);
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data: user } = await axios.get('https://omni-channel-app.onrender.com/api/users/currentUser', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        setCurrentUser(user);
 
-    // const initialize = async () => {
-    //   await storedUser();
-    //   await userDetails();
-    // };
+        const { data: userList } = await axios.get('https://omni-channel-app.onrender.com/api/users/details', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        setUsers(userList);
+      } catch (error) {
+        console.error('❌ Error fetching user data:', error);
+      }
+    };
 
-    // initialize();
-
-    storedUser();
-    userDetails();
+    fetchUserData();
 
     socket.on('private_message', (data) => {
-      console.log("📥 Received:", data);
-      setMessages(prev => [...prev, {
+      const incoming = {
         from: data.from,
-        content: data.content,
-        file: data.file,
-        timestamp: new Date(data.timestamp).toLocaleDateString()
-      }]);
+        content: data.content.message,
+        file: data.content.file,
+        timestamp: new Date(data.timestamp || Date.now()).toLocaleString()
+      };
+      setMessages(prev => [...prev, incoming]);
     });
 
     return () => socket.off('private_message');
   }, []);
 
-  useEffect(() => {
-    console.log('Current User:', currentUser);
-    console.log(users);
-  }, [currentUser, users]);
-
-  const storedUser = async () => {
-    const { data } = await axios.get('https://omni-channel-app.onrender.com/api/users/currentUser', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    console.log(data);
-    setCurrentUser(data);
-  }
-
-  
-  const userDetails = async () => {
-      const {data} = await axios.get('https://omni-channel-app.onrender.com/api/users/details', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    setUsers(data);
-  }
-
   const sendMessage = async (e) => {
     e.preventDefault();
-    
-    console.log('About to send:', {
-        sender: currentUser._id,
-        receiver: selectedReceiver._id,
-        message,
-        file
+    if (!currentUser._id || !selectedReceiver?._id) return;
+
+    const content = {
+      message,
+      file: file ? file.name : null
+    };
+
+    socket.emit('private_message', {
+      from: currentUser._id,
+      to: selectedReceiver._id,
+      content
     });
 
-    if (!currentUser._id || !selectedReceiver._id) return;
+    // Upload file if exists
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      await axios.post(`https://omni-channel-app.onrender.com/api/chat/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
 
-    const formData = new FormData();
-    formData.append('senderEmail', currentUser._id);
-    formData.append('receiverEmail', selectedReceiver._id);
-    formData.append('message', message);
-    if (file) formData.append('file', file);
-    
-    socket.emit('private_message', {from: currentUser._id, to: selectedReceiver._id, content: {message, file}});
-    // socket.on('private_message', (data) => {
-    // setMessages(prev => [...prev, {
-    //     from: data.from,
-    //     content: data.content,
-    //     file: data.file,
-    //     timestamp: new Date(data.timestamp).toLocaleDateString()
-    //   }]);
-    // });
+    // Append message locally
+    setMessages(prev => [...prev, {
+      from: currentUser,
+      content: message,
+      file: file ? file.name : null,
+      timestamp: new Date().toLocaleString()
+    }]);
+
     setMessage('');
     setFile(null);
   };
 
-  
   return (
     <div className="chat-box p-4 border rounded">
       <div className="mb-3">
@@ -120,10 +112,11 @@ const ChatBox = () => {
             ))}
         </select>
       </div>
+
       <div className="messages mb-3" style={{ maxHeight: '300px', overflowY: 'scroll' }}>
         {messages.map((msg, i) => (
           <div key={i} className={`mb-2 ${msg.from._id === currentUser._id ? 'text-end' : 'text-start'}`}>
-            <div><strong>{msg.from.name}</strong>: {msg.content}</div>
+            <div><strong>{msg.from.name || 'User'}</strong>: {msg.content}</div>
             {msg.file && (
               <a
                 href={`https://omni-channel-app.onrender.com/uploads/chat/${msg.file}`}
@@ -135,9 +128,11 @@ const ChatBox = () => {
                 📎 {msg.file}
               </a>
             )}
+            <div className="text-muted" style={{ fontSize: '0.8rem' }}>{msg.timestamp}</div>
           </div>
         ))}
       </div>
+
       <form onSubmit={sendMessage} className="d-flex gap-2">
         <input
           type="text"

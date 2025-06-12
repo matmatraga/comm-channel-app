@@ -1,10 +1,9 @@
-// SMSPage.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io('http://https://omni-channel-app.onrender.com/', {
-  auth: {token: localStorage.getItem('token') || ''}
+const socket = io('https://omni-channel-app.onrender.com', {
+  auth: { token: localStorage.getItem('token') || '' }
 });
 
 const SMSPage = () => {
@@ -13,7 +12,6 @@ const SMSPage = () => {
   const [body, setBody] = useState('');
 
   useEffect(() => {
-    // Listen for incoming SMS from backend via Socket.IO
     socket.on('incoming_sms', ({ from, body }) => {
       setInbox(prev => ({
         ...prev,
@@ -21,7 +19,9 @@ const SMSPage = () => {
       }));
     });
 
-    return () => socket.off('incoming_sms');
+    return () => {
+      socket.off('incoming_sms');
+    };
   }, []);
 
   const sendSMS = async (e) => {
@@ -29,11 +29,16 @@ const SMSPage = () => {
     if (!to || !body) return;
 
     try {
-      await axios.post('http://https://omni-channel-app.onrender.com//api/sms/send', { to, message: body });
+      await axios.post('https://omni-channel-app.onrender.com/api/sms/send', {
+        to,
+        message: body
+      });
+
       setInbox(prev => ({
         ...prev,
         [to]: [...(prev[to] || []), { from: 'You', body, received: false }]
       }));
+
       setBody('');
     } catch (err) {
       console.error('[SEND SMS ERROR]', err);
@@ -69,7 +74,7 @@ const SMSPage = () => {
             />
           </div>
           <div className="col-md-2">
-            <button className="btn btn-primary w-100">Send</button>
+            <button className="btn btn-primary w-100" type="submit">Send</button>
           </div>
         </div>
       </form>
