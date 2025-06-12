@@ -29,6 +29,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.set('io', io); // <-- Add this!
+
 // Middlewares
 app.use(cors({
   origin: '*',
