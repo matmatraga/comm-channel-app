@@ -35,7 +35,8 @@ exports.voiceWebhook = async (req, res) => {
 
   if (Direction === 'inbound') {
     const dial = twiml.dial();
-    dial.client('token'); // This must match identity in frontend token
+    const identity = 'john_doe'; // ⬅️ Match frontend localStorage identity
+    dial.client(identity);
   } else {
     twiml.say('Thank you for using the Omni-Channel Communication App.');
   }
