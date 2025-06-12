@@ -1,5 +1,5 @@
 const SMS = require('../models/SMS');
-// const { sendSMS } = require('../services/smsService');
+const { sendSMS } = require('../services/smsService');
 const { MessagingResponse } = require('twilio').twiml;
 
 exports.sendTextMessage = async (req, res) => {
