@@ -1,7 +1,7 @@
 // routes/chatAttachmentRoutes.js
 const express = require('express');
 const { uploadChatAttachment, downloadChatAttachment } = require('../controllers/chatAttachmentController');
-const { uploadChatAttachment: upload } = require('../utils/fileUpload');
+const { uploadChatAttachment: upload } = require('../utils/upload');
 const { verifyToken } = require('../middlewares/auth');
 
 const router = express.Router();
