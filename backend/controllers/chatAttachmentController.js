@@ -1,7 +1,7 @@
 // controllers/chatAttachmentController.js
 const path = require('path');
 const fs = require('fs');
-const { CHAT_UPLOAD_DIR } = require('../utils/fileUpload');
+const { CHAT_UPLOAD_DIR } = require('../utils/upload');
 
 exports.uploadChatAttachment = (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
