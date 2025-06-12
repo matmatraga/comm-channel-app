@@ -8,6 +8,7 @@ import Logout from './pages/Logout';
 import Email from './pages/Email';
 import ChatBox from './pages/ChatBox';
 import SMS from './pages/SMS';
+import Voice from './pages/Voice';
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
             path="/chatbox"
             element={<ChatBox />}
           />
+          <Route path="/voice" element={<Voice />} />
           <Route path="/sms" element={<SMS />} />
           <Route path="/chatbox" element={<ChatBox />} />
           <Route path="/email" element={<Email />} />
