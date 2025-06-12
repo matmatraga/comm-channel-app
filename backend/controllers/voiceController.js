@@ -41,11 +41,12 @@ exports.voiceWebhook = async (req, res) => {
   console.log('[VOICE WEBHOOK HIT]', req.body);
   const { CallSid, From, To, CallStatus, Direction, Duration } = req.body;
   const identity = req.query.to || 'anonymous';
-
+    console.log(identity);
   const twiml = new VoiceResponse();
 
   if (Direction === 'inbound') {
     const dial = twiml.dial();
+    console.log(dial);
     dial.client(identity); // 🔥 dynamic identity routing
   } else {
     twiml.say('Thank you for using the Omni-Channel Communication App.');
