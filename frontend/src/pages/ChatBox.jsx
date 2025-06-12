@@ -51,38 +51,33 @@ const ChatBox = () => {
     return () => socket.off('private_message');
   }, []);
 
+  const handleFileUpload = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await axios.post('https://omni-channel-app.onrender.com/api/chat/upload', formData, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
+  return res.data.filename;
+};
+
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!currentUser._id || !selectedReceiver?._id) return;
 
-    let uploadedFileName = null;
-
-  // Upload file first if exists
-  if (file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await axios.post(
-        'https://omni-channel-app.onrender.com/api/chat/upload',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      uploadedFileName = res.data.filename; // Make sure your upload route returns { filename }
-    } catch (err) {
-      console.error('Error uploading file:', err);
-      return;
+    let uploadedFilename = null;
+    if (file) {
+      uploadedFilename = await handleFileUpload(file);
     }
-  }
 
     const content = {
       message,
-      file: uploadedFileName || null,
+      file: uploadedFilename || null,
     };
 
     socket.emit('private_message', {
