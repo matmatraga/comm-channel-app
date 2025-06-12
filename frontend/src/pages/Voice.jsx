@@ -33,8 +33,8 @@ const VoicePage = () => {
     const initTwilioDevice = async () => {
     try {
         let identity = localStorage.getItem('identity');
+        identity = 'anonymous';
         if (!identity) {
-            identity = 'anonymous';
             localStorage.setItem('identity', identity);
         }
 
