@@ -29,8 +29,6 @@ exports.receiveSMS = async (req, res) => {
       return res.status(400).send('Invalid SMS data.');
     }
 
-    console.log(`📥 Incoming SMS from ${From}: ${Body}`);
-
     // Save to database
     await SMS.create({ from: From, body: Body });
 

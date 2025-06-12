@@ -8,7 +8,6 @@ module.exports = (io) => {
         const token = socket.handshake.auth.token;
         try{
             const user = jwt.verify(token, process.env.JWT_SECRET);
-            console.log(user);
             const fetchUser = await User.findById(user.id).select('-password -__v');
             socket.user = fetchUser;
             next();
@@ -39,14 +38,8 @@ module.exports = (io) => {
                 if (s.user.id === to || s.user.id === socket.user.id) {
                     s.emit('private_message', payload);
                 
+                }
             }
-
-                console.log(s.user.id, 'sender');
-                console.log(s.user.id === to);
-                console.log(to, 'recepient');
-            }
-            
-            console.log(chat);
         })
     })
 }

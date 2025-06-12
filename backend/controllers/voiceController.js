@@ -43,13 +43,11 @@ exports.voiceWebhook = async (req, res) => {
   console.log('[VOICE WEBHOOK HIT]', req.body);
   const { CallSid, From, To, CallStatus, Direction, Duration } = req.body;
   const identity = req.query.to || 'anonymous';
-    console.log(identity);
   const twiml = new VoiceResponse();
 
   if (Direction === 'inbound') {
     const dial = twiml.dial();
-    console.log(dial);
-    dial.client(identity); // 🔥 dynamic identity routing
+    dial.client(identity);
   } else {
     twiml.say('Thank you for using the Omni-Channel Communication App.');
   }
@@ -85,19 +83,10 @@ exports.getCallHistory = async (req, res) => {
 exports.getToken = async (req, res) => {
   try {
     const { identity } = req.query;
-    console.log('[TOKEN REQUEST] identity:', identity);
-
+    
     if (!identity) {
       return res.status(400).json({ error: 'Missing identity' });
     }
-
-    // Log environment values to ensure they're set (but NEVER expose these in production logs)
-    console.log('[ENV CHECK]', {
-      ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
-      API_KEY: process.env.TWILIO_API_KEY,
-      API_SECRET: !!process.env.TWILIO_API_SECRET, // only log presence
-      TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID
-    });
 
     const accessToken = new AccessToken(
       process.env.TWILIO_ACCOUNT_SID,
