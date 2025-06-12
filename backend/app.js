@@ -51,6 +51,7 @@ app.use('/api/emails', require('./routes/emailRoutes'));
 app.use('/api/attachments', require('./routes/attachmentRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+// app.use('/apa/sms', require('./routes/smsRoutes'));
 
 // Socket.IO Logic
 Socket(io);
