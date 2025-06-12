@@ -18,15 +18,19 @@ exports.sendTextMessage = async (req, res) => {
 
 // Webhook endpoint for incoming SMS
 exports.receiveSMS = (req, res) => {
-  console.log(req.body); // Log the incoming request body for debugging
-  // const { From, Body } = req.body;
-  // console.log(`📥 Incoming SMS from ${From}: ${Body}`);
+  console.log('📨 Twilio Webhook Body:', req.body);
 
-  // // Emit to frontend via Socket.IO
-  // const io = req.app.get('io'); // <-- Access from app.set('io')
-  // io.emit('incoming_sms', { from: From, body: Body });
+  const { From, Body } = req.body; // Make sure keys are capitalized like Twilio sends them
 
-  // // Twilio requires a valid XML response
-  // const twiml = new MessagingResponse();
-  // res.type('text/xml').send(twiml.toString());
+  if (!From || !Body) {
+    return res.status(400).send('Missing required fields');
+  }
+
+  // Emit to frontend via socket
+  const io = req.app.get('io');
+  io.emit('incoming_sms', { from: From, body: Body });
+
+  // Respond to Twilio
+  const twiml = new MessagingResponse();
+  res.type('text/xml').send(twiml.toString());
 };
