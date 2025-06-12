@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -134,7 +135,6 @@ const ChatBox = () => {
         <button className="btn btn-primary" type="submit">Send</button>
       </form>
     </div>
-  );
-};
+);
 
 export default ChatBox;

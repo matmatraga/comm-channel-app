@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import EmailAccordion from '../components/EmailAccordion';
 import axios from 'axios';
 
@@ -73,60 +74,78 @@ const EmailForm = () => {
     }
   };
 
-  return (
-    <div className="container my-5">
-      <div className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-xl mb-6">
-        <h2 className="text-xl font-semibold mb-4">Send Email</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            name="to"
-            placeholder="To"
-            value={formData.to}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-          <input
-            type="text"
-            name="subject"
-            placeholder="Subject"
-            value={formData.subject}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          />
-          <textarea
-            name="text"
-            placeholder="Message"
-            value={formData.text}
-            onChange={handleChange}
-            className="w-full p-2 border rounded h-32"
-            required
-          />
-          <input
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            className="w-full"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Send Email
-          </button>
-        </form>
-        {status && <p className="mt-4 text-sm text-gray-700">{status}</p>}
-      </div>
+    return (
+        <Container className="my-5">
+            <Card className="mb-5 shadow">
+            <Card.Body>
+                <Card.Title>Send Email</Card.Title>
+                <Form onSubmit={handleSubmit}>
+                <Form.Group className="mb-3" controlId="formTo">
+                    <Form.Label>To</Form.Label>
+                    <Form.Control
+                    type="email"
+                    name="to"
+                    placeholder="Enter recipient email"
+                    value={formData.to}
+                    onChange={handleChange}
+                    required
+                    />
+                </Form.Group>
 
-      {/* 📥 Inbox section */}
-      <div className="max-w-2xl mx-auto">
-        <h3 className="text-lg font-semibold mb-3">Inbox</h3>
-        <EmailAccordion emails={emails} />
-      </div>
-    </div>
-  );
+                <Form.Group className="mb-3" controlId="formSubject">
+                    <Form.Label>Subject</Form.Label>
+                    <Form.Control
+                    type="text"
+                    name="subject"
+                    placeholder="Enter subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3" controlId="formMessage">
+                    <Form.Label>Message</Form.Label>
+                    <Form.Control
+                    as="textarea"
+                    name="text"
+                    placeholder="Type your message here"
+                    value={formData.text}
+                    onChange={handleChange}
+                    rows={5}
+                    required
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3" controlId="formAttachments">
+                    <Form.Label>Attachments</Form.Label>
+                    <Form.Control
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    />
+                </Form.Group>
+
+                <Button variant="primary" type="submit">
+                    Send Email
+                </Button>
+
+                {status && (
+                    <Alert variant="info" className="mt-3">
+                    {status}
+                    </Alert>
+                )}
+                </Form>
+            </Card.Body>
+            </Card>
+
+            {/* Inbox Section */}
+            <div className="mb-5">
+            <h3 className="mb-3">Inbox</h3>
+            <EmailAccordion emails={emails} />
+            </div>
+        </Container>
+    );
 };
 
 export default EmailForm;
