@@ -23,9 +23,15 @@ const io = new Server(server, {
   },
 });
 
+// Attach io to request
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: ['http://localhost:5173', 'https://abec-136-158-78-140.ngrok-free.app/'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -51,6 +57,7 @@ app.use('/api/emails', require('./routes/emailRoutes'));
 app.use('/api/attachments', require('./routes/attachmentRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/sms', require('./routes/smsRoutes'));
 
 // Socket.IO Logic
 Socket(io);

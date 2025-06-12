@@ -9,7 +9,7 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', { name, email, password });
+      const res = await axios.post('https://omni-channel-app.onrender.com/api/auth/register', { name, email, password });
       localStorage.setItem('token', res.data.token);
       alert('Registration successful');
     } catch (err) {
