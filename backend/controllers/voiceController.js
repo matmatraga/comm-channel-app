@@ -82,23 +82,42 @@ exports.getCallHistory = async (req, res) => {
   }
 };
 
-exports.generateToken = (req, res) => {
-  const identity = req.query.identity || 'anonymous';
-  console.log('🔐 Generating Twilio Voice Token for:', identity);
+exports.getToken = async (req, res) => {
+  try {
+    const { identity } = req.query;
+    console.log('[TOKEN REQUEST] identity:', identity);
 
-  const accessToken = new AccessToken(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_API_KEY,
-    process.env.TWILIO_API_SECRET,
-    { identity }
-  );
+    if (!identity) {
+      return res.status(400).json({ error: 'Missing identity' });
+    }
 
-  const voiceGrant = new VoiceGrant({
-    outgoingApplicationSid: process.env.TWIML_APP_SID,
-    incomingAllow: true
-  });
+    // Log environment values to ensure they're set (but NEVER expose these in production logs)
+    console.log('[ENV CHECK]', {
+      ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+      API_KEY: process.env.TWILIO_API_KEY,
+      API_SECRET: !!process.env.TWILIO_API_SECRET, // only log presence
+      TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID
+    });
 
-  accessToken.addGrant(voiceGrant);
+    const accessToken = new AccessToken(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_API_KEY,
+      process.env.TWILIO_API_SECRET,
+      { identity }
+    );
 
-  res.json({ token: accessToken.toJwt(), identity });
+    const voiceGrant = new VoiceGrant({
+      outgoingApplicationSid: process.env.TWILIO_TWIML_APP_SID,
+      incomingAllow: true,
+    });
+
+    accessToken.addGrant(voiceGrant);
+
+    const jwt = accessToken.toJwt();
+    res.json({ token: jwt });
+
+  } catch (err) {
+    console.error('❌ [TOKEN GENERATION ERROR]', err);
+    res.status(500).send('Internal Server Error');
+  }
 };
