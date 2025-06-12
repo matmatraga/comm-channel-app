@@ -11,12 +11,12 @@ exports.makeCall = async (req, res) => {
     const call = await client.calls.create({
       url: `https://omni-channel-app.onrender.com/api/voice/voice-response`,
       to,
-      from: process.env.TWILIO_PHONE
+      from: process.env.TWILIO_PHONE_NUMBER
     });
 
     await Voice.create({
       callSid: call.sid,
-      from: process.env.TWILIO_PHONE,
+      from: process.env.TWILIO_PHONE_NUMBER,
       to,
       direction: 'outbound',
       status: call.status
