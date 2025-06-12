@@ -1,5 +1,7 @@
 const Voice = require('../models/Voice');
 const twilio = require('twilio');
+const AccessToken  = twilio.jwt.AccessToken;
+const { VoiceGrant } = twilio.jwt.AccessToken;
 const { VoiceResponse } = twilio.twiml;
 
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
