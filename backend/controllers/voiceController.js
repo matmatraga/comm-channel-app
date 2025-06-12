@@ -72,6 +72,9 @@ exports.getCallHistory = async (req, res) => {
 
 exports.generateToken = (req, res) => {
   const { identity } = req.query;
+  if (!identity) return res.status(400).json({ error: 'Identity is required' });
+
+  console.log('🎫 Generating token for:', identity);
 
   const AccessToken = twilio.jwt.AccessToken;
   const VoiceGrant = AccessToken.VoiceGrant;
