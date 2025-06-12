@@ -18,13 +18,6 @@ const ChatBox = () => {
 
   useEffect(() => {
 
-    // const initialize = async () => {
-    //   await storedUser();
-    //   await userDetails();
-    // };
-
-    // initialize();
-
     storedUser();
     userDetails();
 
@@ -38,23 +31,17 @@ const ChatBox = () => {
       }]);
     });
 
+   
+
     return () => socket.off('private_message');
   }, []);
 
-  useEffect(() => {
-    console.log('Current User:', currentUser);
-    console.log(users);
-  }, [currentUser, users]);
+  // useEffect(() => {
+  //   console.log('Current User:', currentUser);
+  //   console.log(users);
+  // }, [currentUser, users]);
 
   const storedUser = async () => {
-    const { data } = await axios.get('http://localhost:5000/api/users/currentUser', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    console.log(data);
-    setCurrentUser(data);
-  }
     const { data } = await axios.get('http://https://omni-channel-app.onrender.com//api/users/currentUser', {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -79,20 +66,29 @@ const ChatBox = () => {
     
     console.log('About to send:', {
         sender: currentUser._id,
-        receiver: selectedReceiver._id,
+        receiver: users[2]?._id,
         message,
         file
     });
 
-    if (!currentUser._id || !selectedReceiver._id) return;
+    if (!currentUser._id || !users[2]?._id) return;
+
+    // const outgoingMessage = {
+    //   from: currentUser,
+    //   content: message,
+    //   file: file ? file.name : null,
+    //   timestamp: new Date().toISOString()
+    // }
+    // setMessages(prev => [...prev, outgoingMessage]);
 
     const formData = new FormData();
     formData.append('senderEmail', currentUser._id);
-    formData.append('receiverEmail', selectedReceiver._id);
+    formData.append('receiverEmail', users[2]?._id);
     formData.append('message', message);
     if (file) formData.append('file', file);
+    // console.log('Form Data:', formData);
     
-    socket.emit('private_message', {from: currentUser._id, to: selectedReceiver._id, content: {message, file}});
+    socket.emit('private_message', {from: currentUser._id, to: users[2]?._id, content: {message, file}});
     // socket.on('private_message', (data) => {
     // setMessages(prev => [...prev, {
     //     from: data.from,
@@ -108,30 +104,9 @@ const ChatBox = () => {
   
   return (
     <div className="chat-box p-4 border rounded">
-      <div className="mb-3">
-        <label htmlFor="receiverSelect" className="form-label">Select Recipient:</label>
-        <select
-          id="receiverSelect"
-          className="form-select"
-          value={selectedReceiver?._id || ''}
-          onChange={(e) => {
-            const user = users.find(u => u._id === e.target.value);
-            setSelectedReceiver(user);
-          }}
-        >
-          <option value="" disabled>Select a user</option>
-          {users
-            .filter(user => user._id !== currentUser._id)
-            .map(user => (
-              <option key={user._id} value={user._id}>
-                {user.name}
-              </option>
-            ))}
-        </select>
-      </div>
       <div className="messages mb-3" style={{ maxHeight: '300px', overflowY: 'scroll' }}>
         {messages.map((msg, i) => (
-          <div key={i} className={`mb-2 ${msg.from._id === currentUser._id ? 'text-end' : 'text-start'}`}>
+          <div key={i} className={`mb-2 ${msg.from.name === currentUser.name ? 'text-end' : 'text-start'}`}>
             <div><strong>{msg.from.name}</strong>: {msg.content}</div>
             {msg.file && (
               <a
@@ -161,5 +136,6 @@ const ChatBox = () => {
       </form>
     </div>
 );
+}
 
 export default ChatBox;

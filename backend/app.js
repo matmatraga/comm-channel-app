@@ -12,13 +12,11 @@ const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
 const Socket = require('./middlewares/io');
-const http = require('http');
 const socketIO = require('socket.io');
 
 // Load env variables and config
 dotenv.config();
 require('./config/passport');
-
 
 // App & Server Initialization
 const app = express();
@@ -34,18 +32,6 @@ const io = new Server(server, {
 app.use((req, res, next) => {
   req.io = io;
   next();
-});
-
-app.set('io', io); // <-- Add this!
-
-// Middlewares
-const app = expressApp();
-const server = http.createServer(app); // <-- Use this for socket.io
-const io = socketIO(server, {
-  cors: {
-    origin: ['http://localhost:5173'],
-    credentials: true,
-  }
 });
 
 // Attach io to app so routes can access it
