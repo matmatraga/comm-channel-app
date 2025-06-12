@@ -9,6 +9,9 @@ exports.sendTextMessage = async (req, res) => {
     return res.status(400).json({ error: 'Recipient number and message are required.' });
   }
 
+  // Save to database
+  await SMS.create({ from: to, body: message });
+
   try {
     const response = await sendSMS(to, message);
     res.status(200).json({ success: true, sid: response.sid });
