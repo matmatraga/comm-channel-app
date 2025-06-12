@@ -34,9 +34,10 @@ exports.voiceWebhook = async (req, res) => {
   const twiml = new VoiceResponse();
 
   if (Direction === 'inbound') {
-    twiml.say('Hello! This is the Omni-Channel Communication App. Please wait while we connect you.');
-    twiml.pause({ length: 2 });
-    twiml.say('Thank you for calling.');
+    const dial = twiml.dial();
+    dial.client('token'); // This must match identity in frontend token
+  } else {
+    twiml.say('Thank you for using the Omni-Channel Communication App.');
   }
 
   await Voice.findOneAndUpdate(
@@ -63,4 +64,26 @@ exports.getCallHistory = async (req, res) => {
     console.error('[GET CALL HISTORY ERROR]', err);
     res.status(500).json({ error: 'Unable to fetch call logs' });
   }
+};
+
+exports.generateToken = (req, res) => {
+  const { identity } = req.query;
+
+  const AccessToken = twilio.jwt.AccessToken;
+  const VoiceGrant = AccessToken.VoiceGrant;
+
+  const token = new AccessToken(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_API_KEY,
+    process.env.TWILIO_API_SECRET,
+    { identity }
+  );
+
+  const voiceGrant = new VoiceGrant({
+    outgoingApplicationSid: process.env.TWILIO_TWIML_APP_SID,
+    incomingAllow: true
+  });
+
+  token.addGrant(voiceGrant);
+  res.send({ token: token.toJwt() });
 };
