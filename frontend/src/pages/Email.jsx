@@ -18,7 +18,7 @@ const EmailForm = () => {
     const fetchEmails = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/emails/receive', {
+        const response = await axios.get('http://https://omni-channel-app.onrender.com//api/emails/receive', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -54,7 +54,7 @@ const EmailForm = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/emails/send', {
+      const response = await fetch('http://https://omni-channel-app.onrender.com//api/emails/send', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

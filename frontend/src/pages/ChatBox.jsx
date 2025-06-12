@@ -1,89 +1,140 @@
-import React, { useEffect, useRef, useState } from 'react';
-import io from 'socket.io-client';
-import { Form, Button, Card, InputGroup, ListGroup } from 'react-bootstrap';
 
-const socket = io('http://localhost:5000');
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
+import axios from 'axios';
+import { useSearchParams, useParams } from 'react-router-dom';
+
+const socket = io('http://https://omni-channel-app.onrender.com/', {
+  auth: {token: localStorage.getItem('token') || ''}
+});
 
 const ChatBox = () => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sender, setSender] = useState('User');
-  const [file, setFile] = useState(null);
-  const messagesEndRef = useRef(null);
+    const [message, setMessage] = useState('');
+    const [file, setFile] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [currentUser, setCurrentUser] = useState({});
+    const [users, setUsers] = useState([]);
+    const [selectedReceiver, setSelectedReceiver] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/chat/history')
-      .then((res) => res.json())
-      .then(setMessages);
 
-    socket.on('chat', (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    storedUser();
+    userDetails();
+
+    socket.on('private_message', (data) => {
+      console.log("📥 Received:", data);
+      setMessages(prev => [...prev, {
+        from: data.from,
+        content: data.content,
+        file: data.file,
+        timestamp: new Date(data.timestamp).toLocaleDateString()
+      }]);
     });
 
-    return () => socket.off('chat');
+   
+
+    return () => socket.off('private_message');
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // useEffect(() => {
+  //   console.log('Current User:', currentUser);
+  //   console.log(users);
+  // }, [currentUser, users]);
 
-  const handleSend = async (e) => {
+  const storedUser = async () => {
+    const { data } = await axios.get('http://https://omni-channel-app.onrender.com//api/users/currentUser', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    }
+  })
+  console.log(data);
+  setCurrentUser(data);
+}
+
+  
+  const userDetails = async () => {
+      const {data} = await axios.get('http://https://omni-channel-app.onrender.com//api/users/details', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    setUsers(data);
+  }
+
+  const sendMessage = async (e) => {
     e.preventDefault();
-
-    const formData = new FormData();
-    formData.append('sender', sender);
-    formData.append('message', input);
-    if (file) formData.append('file', file);
-
-    const res = await fetch('http://localhost:5000/api/chat/send', {
-      method: 'POST',
-      body: formData,
+    
+    console.log('About to send:', {
+        sender: currentUser._id,
+        receiver: users[2]?._id,
+        message,
+        file
     });
 
-    setInput('');
+    if (!currentUser._id || !users[2]?._id) return;
+
+    // const outgoingMessage = {
+    //   from: currentUser,
+    //   content: message,
+    //   file: file ? file.name : null,
+    //   timestamp: new Date().toISOString()
+    // }
+    // setMessages(prev => [...prev, outgoingMessage]);
+
+    const formData = new FormData();
+    formData.append('senderEmail', currentUser._id);
+    formData.append('receiverEmail', users[2]?._id);
+    formData.append('message', message);
+    if (file) formData.append('file', file);
+    // console.log('Form Data:', formData);
+    
+    socket.emit('private_message', {from: currentUser._id, to: users[2]?._id, content: {message, file}});
+    // socket.on('private_message', (data) => {
+    // setMessages(prev => [...prev, {
+    //     from: data.from,
+    //     content: data.content,
+    //     file: data.file,
+    //     timestamp: new Date(data.timestamp).toLocaleDateString()
+    //   }]);
+    // });
+    setMessage('');
     setFile(null);
   };
 
+  
   return (
-    <Card className="shadow">
-      <Card.Header>
-        <strong>Chat</strong>
-      </Card.Header>
-      <Card.Body style={{ maxHeight: '400px', overflowY: 'auto' }}>
-        <ListGroup variant="flush">
-          {messages.map((msg) => (
-            <ListGroup.Item key={msg.id}>
-              <div>
-                <strong>{msg.sender}</strong> <small className="text-muted">{new Date(msg.timestamp).toLocaleTimeString()}</small>
-              </div>
-              <div>{msg.message}</div>
-              {msg.file && (
-                <a href={`http://localhost:5000${msg.file.path}`} download className="d-block mt-1">
-                  📎 {msg.file.filename}
-                </a>
-              )}
-            </ListGroup.Item>
-          ))}
-          <div ref={messagesEndRef} />
-        </ListGroup>
-      </Card.Body>
-      <Card.Footer>
-        <Form onSubmit={handleSend}>
-          <InputGroup className="mb-2">
-            <Form.Control
-              type="text"
-              placeholder="Enter message"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              required
-            />
-            <Form.Control type="file" onChange={(e) => setFile(e.target.files[0])} />
-            <Button type="submit" variant="primary">Send</Button>
-          </InputGroup>
-        </Form>
-      </Card.Footer>
-    </Card>
-  );
-};
+    <div className="chat-box p-4 border rounded">
+      <div className="messages mb-3" style={{ maxHeight: '300px', overflowY: 'scroll' }}>
+        {messages.map((msg, i) => (
+          <div key={i} className={`mb-2 ${msg.from.name === currentUser.name ? 'text-end' : 'text-start'}`}>
+            <div><strong>{msg.from.name}</strong>: {msg.content}</div>
+            {msg.file && (
+              <a
+                href={`http://https://omni-channel-app.onrender.com//uploads/chat/${msg.file}`}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500"
+              >
+                📎 {msg.file}
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={sendMessage} className="d-flex gap-2">
+        <input
+          type="text"
+          className="form-control"
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Type a message"
+          required
+        />
+        <input type="file" onChange={e => setFile(e.target.files[0])} />
+        <button className="btn btn-primary" type="submit">Send</button>
+      </form>
+    </div>
+);
 
 export default ChatBox;
