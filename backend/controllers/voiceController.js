@@ -81,6 +81,7 @@ exports.getCallHistory = async (req, res) => {
 
 exports.generateToken = (req, res) => {
   const identity = req.query.identity || 'anonymous';
+  console.log('🔐 Generating Twilio Voice Token for:', identity);
 
   const accessToken = new AccessToken(
     process.env.TWILIO_ACCOUNT_SID,
