@@ -42,3 +42,21 @@ exports.receiveSMS = async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 };
+
+exports.getSMSHistory = async (req, res) => {
+  try {
+    const messages = await SMS.find().sort({ receivedAt: 1 });
+
+    // Group messages by sender
+    const grouped = {};
+    messages.forEach((msg) => {
+      if (!grouped[msg.from]) grouped[msg.from] = [];
+      grouped[msg.from].push({ from: msg.from, body: msg.body, received: true });
+    });
+
+    res.status(200).json(grouped);
+  } catch (error) {
+    console.error('[GET SMS HISTORY ERROR]', error);
+    res.status(500).json({ error: 'Failed to fetch SMS history' });
+  }
+};
