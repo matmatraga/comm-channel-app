@@ -25,7 +25,7 @@ module.exports = (io) => {
                 sender: socket.user.id,
                 receiver: to,
                 message: content.message,
-                file: content.file?.name || null
+                file: content.file || null
             });
 
             const payload = {

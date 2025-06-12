@@ -55,9 +55,34 @@ const ChatBox = () => {
     e.preventDefault();
     if (!currentUser._id || !selectedReceiver?._id) return;
 
+    let uploadedFileName = null;
+
+  // Upload file first if exists
+  if (file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await axios.post(
+        'https://omni-channel-app.onrender.com/api/chat/upload',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      uploadedFileName = res.data.filename; // Make sure your upload route returns { filename }
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      return;
+    }
+  }
+
     const content = {
       message,
-      file: file ? file.name : null
+      file: uploadedFileName || null,
     };
 
     socket.emit('private_message', {
@@ -120,11 +145,10 @@ const ChatBox = () => {
             <div><strong>{msg.from.name || 'User'}</strong>: {msg.content}</div>
             {msg.file && (
               <a
-                href={`https://omni-channel-app.onrender.com/uploads/chat/${msg.file}`}
+                href={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500"
               >
                 📎 {msg.file}
               </a>

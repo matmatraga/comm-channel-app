@@ -1,6 +1,9 @@
 // === chatController.js ===
 const Chat = require('../models/Chat');
 const User = require('../models/User');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 exports.sendMessage = async (req, res) => {
   try {
@@ -57,4 +60,27 @@ exports.getMessages = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch messages' });
   }
+};
+
+// Configure Multer Storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/chat');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const upload = multer({ storage });
+
+exports.uploadMiddleware = upload.single('file');
+
+exports.uploadChatFile = (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  res.json({ filename: req.file.filename });
 };

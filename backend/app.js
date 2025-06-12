@@ -51,8 +51,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Static file serving (Chat Attachments)
-app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads', 'chat')));
+// Serve static files from /uploads/chat
+app.use('/uploads/chat', express.static(path.join(__dirname, 'uploads/chat')));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

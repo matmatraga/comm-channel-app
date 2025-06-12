@@ -1,13 +1,12 @@
 // === routes/chatRoutes.js ===
 const express = require('express');
 const router = express.Router();
-const upload = require('../middlewares/upload');
-const chatController = require('../controllers/chatController');
+const { uploadMiddleware, uploadChatFile } = require('../controllers/chatController');
+const { downloadChatAttachment } = require('../controllers/chatAttachmentController');
 
-// Send message (with file upload)
-router.post('/', upload.single('file'), chatController.sendMessage);
 
-// Get messages between users by email
-router.get('/:senderEmail/:receiverEmail', chatController.getMessages);
+router.post('/upload', verifyToken, uploadMiddleware, uploadChatFile);
+// Download file
+router.get('/download/:filename', verifyToken, downloadChatAttachment);
 
 module.exports = router;
