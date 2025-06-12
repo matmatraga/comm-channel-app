@@ -10,18 +10,23 @@ exports.makeCall = async (req, res) => {
   try {
     const { to } = req.body;
     console.log('📞 Outbound call request body:', req.body);
-    const call = await client.calls.create({
-      url: `https://omni-channel-app.onrender.com/api/voice/voice-response`,
-      to,
-      from: process.env.TWILIO_PHONE_NUMBER
-    });
+
+    const isPhoneNumber = /^\+?\d+$/.test(to); // crude check for phone number
+
+    const callParams = {
+      url: `https://omni-channel-app.onrender.com/api/voice/voice-response?to=${encodeURIComponent(to)}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: isPhoneNumber ? to : `client:${to}`, // Handle either identity or phone
+    };
+
+    const call = await client.calls.create(callParams);
 
     await Voice.create({
       callSid: call.sid,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to,
+      to: callParams.to,
       direction: 'outbound',
-      status: call.status
+      status: call.status,
     });
 
     res.status(200).json({ message: 'Call initiated', sid: call.sid });
@@ -31,28 +36,32 @@ exports.makeCall = async (req, res) => {
   }
 };
 
+
 exports.voiceWebhook = async (req, res) => {
-    console.log('[VOICE WEBHOOK HIT]', req.body);
+  console.log('[VOICE WEBHOOK HIT]', req.body);
   const { CallSid, From, To, CallStatus, Direction, Duration } = req.body;
+  const identity = req.query.to || 'anonymous';
+
   const twiml = new VoiceResponse();
 
   if (Direction === 'inbound') {
     const dial = twiml.dial();
-    const identity = 'john_doe'; // ⬅️ Match frontend localStorage identity
-    dial.client(identity);
+    dial.client(identity); // 🔥 dynamic identity routing
   } else {
     twiml.say('Thank you for using the Omni-Channel Communication App.');
   }
 
+  // Save or update the voice call log
   await Voice.findOneAndUpdate(
     { callSid: CallSid },
     {
       callSid: CallSid,
       from: From,
-      to: To,
+      to: To || `client:${identity}`,
       direction: Direction || 'inbound',
       status: CallStatus,
-      duration: Duration
+      duration: Duration || 0,
+      timestamp: new Date(),
     },
     { upsert: true, new: true }
   );
@@ -71,15 +80,9 @@ exports.getCallHistory = async (req, res) => {
 };
 
 exports.generateToken = (req, res) => {
-  const { identity } = req.query;
-  if (!identity) return res.status(400).json({ error: 'Identity is required' });
+  const identity = req.query.identity || 'anonymous';
 
-  console.log('🎫 Generating token for:', identity);
-
-  const AccessToken = twilio.jwt.AccessToken;
-  const VoiceGrant = AccessToken.VoiceGrant;
-
-  const token = new AccessToken(
+  const accessToken = new AccessToken(
     process.env.TWILIO_ACCOUNT_SID,
     process.env.TWILIO_API_KEY,
     process.env.TWILIO_API_SECRET,
@@ -87,10 +90,11 @@ exports.generateToken = (req, res) => {
   );
 
   const voiceGrant = new VoiceGrant({
-    outgoingApplicationSid: process.env.TWILIO_TWIML_APP_SID,
+    outgoingApplicationSid: process.env.TWIML_APP_SID,
     incomingAllow: true
   });
 
-  token.addGrant(voiceGrant);
-  res.send({ token: token.toJwt() });
+  accessToken.addGrant(voiceGrant);
+
+  res.json({ token: accessToken.toJwt(), identity });
 };
