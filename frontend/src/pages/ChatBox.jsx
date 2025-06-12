@@ -38,10 +38,11 @@ const ChatBox = () => {
     fetchUserData();
 
     socket.on('private_message', (data) => {
+      console.log(data);
       const incoming = {
         from: data.from,
-        content: data.content.message,
-        file: data.content.file,
+        content: data.content,
+        file: data.file,
         timestamp: new Date(data.timestamp || Date.now()).toLocaleString()
       };
       setMessages(prev => [...prev, incoming]);
@@ -60,30 +61,30 @@ const ChatBox = () => {
     };
 
     socket.emit('private_message', {
-      from: currentUser._id,
+      // from: currentUser._id,
       to: selectedReceiver._id,
       content
     });
 
     // Upload file if exists
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      await axios.post(`https://omni-channel-app.onrender.com/api/chat/upload`, formData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-    }
+    // if (file) {
+    //   const formData = new FormData();
+    //   formData.append('file', file);
+    //   await axios.post(`https://omni-channel-app.onrender.com/api/chat/upload`, formData, {
+    //     headers: {
+    //       Authorization: `Bearer ${localStorage.getItem('token')}`,
+    //       'Content-Type': 'multipart/form-data'
+    //     }
+    //   });
+    // }
 
     // Append message locally
-    setMessages(prev => [...prev, {
-      from: currentUser,
-      content: message,
-      file: file ? file.name : null,
-      timestamp: new Date().toLocaleString()
-    }]);
+    // setMessages(prev => [...prev, {
+    //   from: currentUser,
+    //   content: message,
+    //   file: file ? file.name : null,
+    //   timestamp: new Date().toLocaleString()
+    // }]);
 
     setMessage('');
     setFile(null);
