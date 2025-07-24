@@ -1,17 +1,17 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
 const EmailAccordion = ({ emails }) => {
   const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown Date';
+    if (!dateString) return "Unknown Date";
     try {
       const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch (error) {
       return dateString;
@@ -53,13 +53,13 @@ const EmailAccordion = ({ emails }) => {
               <div className="d-flex justify-content-between align-items-center w-100">
                 <div>
                   <div className="fw-bold">
-                    {email.subject || 'No Subject'}
+                    {email.subject || "No Subject"}
                     {email.attachments?.length > 0 && (
                       <span className="ms-2">📎</span>
                     )}
                   </div>
                   <small className="text-muted">
-                    {email.from || 'Unknown Sender'}
+                    {email.from || "Unknown Sender"}
                   </small>
                 </div>
                 <small className="text-muted">{formatDate(email.date)}</small>
@@ -74,8 +74,11 @@ const EmailAccordion = ({ emails }) => {
             data-bs-parent="#emailAccordion"
           >
             <div className="accordion-body">
-              <div className="mb-3 border-start border-primary border-3 ps-3" style={{ whiteSpace: 'pre-wrap' }}>
-                {email.text || 'No content.'}
+              <div
+                className="mb-3 border-start border-primary border-3 ps-3"
+                style={{ whiteSpace: "pre-wrap" }}
+              >
+                {email.text || "No content."}
               </div>
 
               {email.attachments?.length > 0 && (

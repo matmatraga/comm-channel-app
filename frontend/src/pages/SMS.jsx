@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import io from "socket.io-client";
 
-const socket = io('https://omni-channel-app.onrender.com', {
-  auth: { token: localStorage.getItem('token') || '' }
+const socket = io("https://omni-channel-app.onrender.com", {
+  auth: { token: localStorage.getItem("token") || "" },
 });
 
 const SMSPage = () => {
   const [inbox, setInbox] = useState({});
-  const [to, setTo] = useState('');
-  const [body, setBody] = useState('');
+  const [to, setTo] = useState("");
+  const [body, setBody] = useState("");
 
   useEffect(() => {
-    socket.on('incoming_sms', ({ from, body }) => {
-      setInbox(prev => ({
+    socket.on("incoming_sms", ({ from, body }) => {
+      setInbox((prev) => ({
         ...prev,
-        [from]: [...(prev[from] || []), { from, body, received: true }]
+        [from]: [...(prev[from] || []), { from, body, received: true }],
       }));
     });
 
     return () => {
-      socket.off('incoming_sms');
+      socket.off("incoming_sms");
     };
   }, []);
 
@@ -29,19 +29,19 @@ const SMSPage = () => {
     if (!to || !body) return;
 
     try {
-      await axios.post('https://omni-channel-app.onrender.com/api/sms/send', {
+      await axios.post("https://omni-channel-app.onrender.com/api/sms/send", {
         to,
-        message: body
+        message: body,
       });
 
-      setInbox(prev => ({
+      setInbox((prev) => ({
         ...prev,
-        [to]: [...(prev[to] || []), { from: 'You', body, received: false }]
+        [to]: [...(prev[to] || []), { from: "You", body, received: false }],
       }));
 
-      setBody('');
+      setBody("");
     } catch (err) {
-      console.error('[SEND SMS ERROR]', err);
+      console.error("[SEND SMS ERROR]", err);
     }
   };
 
@@ -74,7 +74,9 @@ const SMSPage = () => {
             />
           </div>
           <div className="col-md-2">
-            <button className="btn btn-primary w-100" type="submit">Send</button>
+            <button className="btn btn-primary w-100" type="submit">
+              Send
+            </button>
           </div>
         </div>
       </form>
@@ -102,8 +104,15 @@ const SMSPage = () => {
             >
               <div className="accordion-body">
                 {messages.map((msg, i) => (
-                  <div key={i} className={`mb-2 ${msg.received ? 'text-start' : 'text-end'}`}>
-                    <small className="text-muted">{msg.received ? sender : 'You'}</small>
+                  <div
+                    key={i}
+                    className={`mb-2 ${
+                      msg.received ? "text-start" : "text-end"
+                    }`}
+                  >
+                    <small className="text-muted">
+                      {msg.received ? sender : "You"}
+                    </small>
                     <div>{msg.body}</div>
                   </div>
                 ))}
