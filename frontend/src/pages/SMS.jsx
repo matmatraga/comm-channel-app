@@ -16,7 +16,39 @@ const SMSPage = () => {
   const { theme } = useTheme();
 
   useEffect(() => {
-    socket.on("incoming_sms", ({ from, body }) => {
+    // Fetch SMS history on mount
+    const fetchSMSHistory = async () => {
+      try {
+        const res = await axios.get(
+          "https://omni-channel-app.onrender.com/api/sms/history",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        const history = res.data; // Assumes it's already grouped by `from`
+
+        // Format history into your inbox state shape
+        const formatted = {};
+        Object.entries(history).forEach(([sender, messages]) => {
+          formatted[sender] = messages.map((msg) => ({
+            ...msg,
+            receivedAt: new Date(msg.receivedAt).toLocaleString(),
+          }));
+        });
+
+        setInbox(formatted);
+      } catch (error) {
+        console.error("[FETCH SMS HISTORY ERROR]", error);
+        toast.error("Failed to load SMS history");
+      }
+    };
+
+    fetchSMSHistory();
+
+    socket.on("incoming_sms", ({ from, body, receivedAt }) => {
       setInbox((prev) => ({
         ...prev,
         [from]: [
@@ -24,8 +56,8 @@ const SMSPage = () => {
           {
             from,
             body,
-            received: true,
-            receivedAt: new Date().toLocaleString() || new Date().toISOString(),
+            status: "received",
+            receivedAt: new Date(receivedAt || Date.now()).toLocaleString(),
           },
         ],
       }));
@@ -52,8 +84,9 @@ const SMSPage = () => {
           ...(prev[to] || []),
           {
             from: "You",
+            to,
             body,
-            received: false,
+            status: "sent",
             receivedAt: new Date().toLocaleString(),
           },
         ],
@@ -132,19 +165,21 @@ const SMSPage = () => {
                   <div
                     key={i}
                     className={`mb-3 p-3 rounded-lg shadow-sm text-sm ${
-                      msg.received
+                      msg.status === "received"
                         ? "bg-gray-100 text-left dark:bg-gray-700"
                         : "bg-blue-100 text-right dark:bg-blue-800 text-white"
                     }`}
                   >
                     <div className="mb-1 font-semibold">
-                      {msg.received ? sender : "You"}{" "}
+                      {msg.status === "received" ? sender : "You"}{" "}
                       <span
                         className={`ml-2 text-xs font-medium ${
-                          msg.received ? "text-green-500" : "text-blue-400"
+                          msg.status === "received"
+                            ? "text-green-500"
+                            : "text-blue-400"
                         }`}
                       >
-                        {msg.received ? "Received" : "Sent"}
+                        {msg.status === "received" ? "Received" : "Sent"}
                       </span>
                     </div>
                     <div className="">{msg.body}</div>
