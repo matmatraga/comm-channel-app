@@ -22,7 +22,7 @@ exports.downloadChatAttachment = (req, res) => {
 };
 
 exports.getChatHistory = async (req, res) => {
-  const currentUserId = req.user._id;
+  const currentUserId = req.user.id;
   const receiverId = req.params.receiverId;
 
   try {
@@ -32,21 +32,16 @@ exports.getChatHistory = async (req, res) => {
       { $set: { isRead: true } }
     );
 
-    console.log("📥 Current User:", req.user.id);
-    console.log("📥 Receiver ID:", req.params.receiverId);
-
     // Fetch full chat history
     const chats = await Chat.find({
       $or: [
         { sender: req.user.id, receiver: req.params.receiverId },
         { sender: req.params.receiverId, receiver: req.user.id },
       ],
-    });
-    console.log("📨 Fetched Chats:", chats.length);
-
-    // .sort({ createdAt: 1 })
-    // .populate("sender", "name _id")
-    // .populate("receiver", "name _id");
+    })
+      .sort({ createdAt: 1 })
+      .populate("sender", "name _id")
+      .populate("receiver", "name _id");
 
     res.status(200).json({ success: true, chats });
   } catch (error) {
