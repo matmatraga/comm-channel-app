@@ -40,9 +40,6 @@ exports.makeCall = async (req, res) => {
   }
 };
 
-const { VoiceResponse } = require("twilio").twiml;
-const Voice = require("../models/Voice");
-
 exports.voiceWebhook = async (req, res) => {
   console.log("[VOICE WEBHOOK HIT]", req.body);
 
