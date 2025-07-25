@@ -8,6 +8,7 @@ const session = require("express-session");
 const passport = require("passport");
 const path = require("path");
 const Socket = require("./middlewares/io");
+const voiceController = require("./controllers/voiceController");
 
 // Load env variables and config
 dotenv.config();
