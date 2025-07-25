@@ -40,6 +40,12 @@ exports.makeCall = async (req, res) => {
   }
 };
 
+// Inject Socket.IO into the controller via closure
+let io;
+exports.initSocket = (serverIO) => {
+  io = serverIO;
+};
+
 exports.voiceWebhook = async (req, res) => {
   console.log("[VOICE WEBHOOK HIT]", req.body);
 
@@ -56,20 +62,25 @@ exports.voiceWebhook = async (req, res) => {
 
   const existingCall = await Voice.findOne({ callSid: CallSid });
 
-  const updatedData = {
-    callSid: CallSid,
-    from: From,
-    to: To || `client:${identity}`,
-    direction: Direction || "inbound",
-    status: CallStatus,
-    duration: Duration || existingCall?.duration || 0,
-    timestamp: existingCall?.timestamp || new Date(),
-  };
+  // Save or update the voice call log
+  const updatedCall = await Voice.findOneAndUpdate(
+    { callSid: CallSid },
+    {
+      callSid: CallSid,
+      from: From,
+      to: To || `client:${identity}`,
+      direction: Direction || "inbound",
+      status: CallStatus,
+      duration: Duration || 0,
+      timestamp: new Date(),
+    },
+    { upsert: true, new: true }
+  );
 
-  await Voice.findOneAndUpdate({ callSid: CallSid }, updatedData, {
-    upsert: true,
-    new: true,
-  });
+  // ✅ Emit to connected clients after saving
+  if (io) {
+    io.emit("call_ended", updatedCall);
+  }
 
   res.type("text/xml").send(twiml.toString());
 };
