@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import axios from "axios";
 import { useTheme } from "../context/ThemeContext";
@@ -16,6 +16,7 @@ const ChatBox = () => {
   const [currentUser, setCurrentUser] = useState({});
   const [users, setUsers] = useState([]);
   const [selectedReceiver, setSelectedReceiver] = useState(null);
+  const messageContainerRef = useRef();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -59,6 +60,47 @@ const ChatBox = () => {
 
     return () => socket.off("private_message");
   }, []);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      console.log("📡 Fetching history for:", selectedReceiver?._id);
+      if (!selectedReceiver?._id) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get(
+          `https://omni-channel-app.onrender.com/api/chat/history/${selectedReceiver._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("✅ Chat history fetched:", data);
+
+        const formatted = data.chats.map((msg) => ({
+          from: msg.sender,
+          content: msg.message,
+          file: msg.file,
+          timestamp: new Date(msg.createdAt).toLocaleString(),
+        }));
+
+        setMessages(formatted);
+      } catch (err) {
+        console.error("❌ Failed to fetch chat history:", err);
+      }
+    };
+
+    fetchHistory();
+  }, [selectedReceiver]);
+
+  useEffect(() => {
+    if (messageContainerRef.current) {
+      messageContainerRef.current.scrollTop =
+        messageContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleFileUpload = async (file) => {
     const formData = new FormData();
@@ -134,49 +176,72 @@ const ChatBox = () => {
           </select>
         </div>
 
-        <div className="h-80 overflow-y-auto space-y-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`max-w-[70%] px-4 py-2 rounded-lg shadow 
-                ${
-                  msg.from._id === currentUser._id
-                    ? theme === "dark"
-                      ? "ml-auto bg-blue-700 text-white" // 🔵 Blue bubble for sender
-                      : "ml-auto bg-blue-100 text-blue-900"
-                    : theme === "dark"
-                    ? "bg-gray-600 text-gray-100" // ⚪️ Gray bubble for receiver
-                    : "bg-gray-100 text-gray-900"
+        <div
+          ref={messageContainerRef}
+          className="h-80 overflow-y-auto space-y-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg"
+        >
+          {messages.map((msg, i) => {
+            const isSender = msg.from?._id === currentUser._id;
+
+            return (
+              <div
+                key={i}
+                className={`flex flex-col ${
+                  isSender ? "items-end" : "items-start"
                 }`}
-            >
-              <div className="text-sm font-semibold mb-1 flex items-center gap-1">
-                <User2 className="h-4 w-4" />
-                {msg.from?.name || "User"}
-              </div>
-              <div className="text-sm">{msg.content}</div>
-              {msg.file && (
-                <div className="flex items-center gap-2 mt-2 bg-gray-100 dark:bg-gray-600 p-2 rounded-md max-w-full">
-                  {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(msg.file) && (
-                    <img
-                      src={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
-                      alt="attachment"
-                      className="w-12 h-12 rounded object-cover"
-                    />
+              >
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-lg shadow
+          ${
+            isSender
+              ? theme === "dark"
+                ? "bg-blue-700 text-white"
+                : "bg-blue-100 text-blue-900"
+              : theme === "dark"
+              ? "bg-gray-600 text-gray-100"
+              : "bg-gray-200 text-gray-900"
+          }`}
+                >
+                  <div className="text-sm font-semibold mb-1 flex items-center gap-1">
+                    <User2 className="h-4 w-4" />
+                    {msg.from?.name || "User"}
+                  </div>
+                  <div className="text-sm">{msg.content}</div>
+
+                  {msg.file && (
+                    <div className="flex items-center gap-2 mt-2 bg-gray-100 dark:bg-gray-600 p-2 rounded-md max-w-full">
+                      {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(msg.file) && (
+                        <img
+                          src={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
+                          alt="attachment"
+                          className="w-12 h-12 rounded object-cover"
+                        />
+                      )}
+                      <a
+                        href={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 dark:text-blue-300 underline break-all truncate max-w-full"
+                      >
+                        {msg.file}
+                      </a>
+                    </div>
                   )}
-                  <a
-                    href={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 dark:text-blue-300 underline break-all truncate max-w-full"
-                  >
-                    {msg.file}
-                  </a>
+                  <div className="text-xs mt-1 text-gray-300">
+                    {msg.timestamp}
+                  </div>
                 </div>
-              )}
-              <div className="text-xs mt-1 text-gray-300">{msg.timestamp}</div>
-            </div>
-          ))}
+
+                {/* Read receipt (only show on sender's messages) */}
+                {isSender && (
+                  <div className="text-xs text-gray-400 mt-1 pr-1">
+                    {msg.isRead ? "Seen" : "Delivered"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <form onSubmit={sendMessage} className="flex items-center gap-2">
