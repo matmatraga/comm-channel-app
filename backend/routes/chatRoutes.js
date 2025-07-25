@@ -16,6 +16,6 @@ router.post(
   uploadChatAttachment
 );
 router.get("/download/:filename", downloadChatAttachment);
-router.get("/history/:receiverId", protect, chatController.getChatHistory);
+router.get("/history/:receiverId", verifyToken, chatController.getChatHistory);
 
 module.exports = router;
