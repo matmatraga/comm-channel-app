@@ -20,11 +20,11 @@ function App() {
           <Navbar />
           <Toaster position="bottom-right" reverseOrder={false} />
           <Routes>
+            <Route path="/" element={<Home />} />
             <Route path="/voice" element={<Voice />} />
             <Route path="/sms" element={<SMS />} />
             <Route path="/chat" element={<ChatBox />} />
             <Route path="/email" element={<Email />} />
-            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/logout" element={<Logout />} />

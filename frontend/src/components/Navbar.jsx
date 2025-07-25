@@ -20,7 +20,6 @@ import { useTheme } from "../context/ThemeContext";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notifications] = useState(3);
   const { isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -93,18 +92,6 @@ const Navbar = () => {
                 <Moon className="h-5 w-5 text-gray-600" />
               )}
             </button>
-
-            {/* Notifications */}
-            {isAuthenticated && (
-              <button className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 hover:bg-gray-50 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <Bell className="h-5 w-5" />
-                {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                    {notifications}
-                  </span>
-                )}
-              </button>
-            )}
 
             {/* Auth items */}
             <div className="flex items-center space-x-2">
