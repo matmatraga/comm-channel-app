@@ -8,7 +8,6 @@ const session = require("express-session");
 const passport = require("passport");
 const path = require("path");
 const Socket = require("./middlewares/io");
-const voiceController = require("./controllers/voiceController");
 
 // Load env variables and config
 dotenv.config();
@@ -71,7 +70,6 @@ app.use("/api/chat", require("./routes/chatRoutes"));
 
 // Socket.IO Logic
 Socket(io);
-voiceController.initSocket(io);
 
 // MongoDB Connection + Server Start
 mongoose
