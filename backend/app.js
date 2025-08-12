@@ -18,7 +18,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    // origin: "*",
+    origin: "*",
     credentials: true,
   },
 });
@@ -34,7 +34,7 @@ app.set("io", io);
 // Middlewares
 app.use(
   cors({
-    // origin: "*",
+    origin: "*",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
