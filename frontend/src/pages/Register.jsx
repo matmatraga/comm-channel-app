@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import { User, Mail, Lock, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
 const Register = () => {
@@ -10,17 +12,21 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { theme } = useTheme();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await axios.post(
-        "https://omni-channel-app.onrender.com/api/auth/register",
-        { name, email, password }
-      );
-      localStorage.setItem("token", res.data.token);
-      toast.success("🎉 Registration successful!");
+      const res = await api.post("/api/auth/register", {
+        name,
+        email,
+        password,
+      });
+      login(res.data.token);
+      toast.success("Registration successful!");
+      navigate("/chat");
     } catch (err) {
       toast.error(err.response?.data?.error || "Registration failed");
     } finally {
@@ -46,18 +52,14 @@ const Register = () => {
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label className="text-sm font-medium">Name</label>
-            <div
-              className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 
-              bg-white dark:bg-gray-700 
-              border border-gray-300 dark:border-gray-600"
-            >
+            <div className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
               <User className="h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400"
                 placeholder="Your name"
               />
             </div>
@@ -65,18 +67,14 @@ const Register = () => {
 
           <div>
             <label className="text-sm font-medium">Email</label>
-            <div
-              className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 
-              bg-white dark:bg-gray-700 
-              border border-gray-300 dark:border-gray-600"
-            >
+            <div className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
               <Mail className="h-4 w-4 text-gray-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400"
                 placeholder="you@example.com"
               />
             </div>
@@ -84,18 +82,14 @@ const Register = () => {
 
           <div>
             <label className="text-sm font-medium">Password</label>
-            <div
-              className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 
-              bg-white dark:bg-gray-700 
-              border border-gray-300 dark:border-gray-600"
-            >
+            <div className="flex items-center mt-1 rounded-lg px-3 py-2 focus-within:ring-2 ring-blue-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
               <Lock className="h-4 w-4 text-gray-400" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                className="ml-3 w-full outline-none bg-transparent text-sm text-gray-800 dark:text-white placeholder-gray-400"
                 placeholder="••••••••"
               />
             </div>
