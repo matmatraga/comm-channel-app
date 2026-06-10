@@ -29,7 +29,14 @@ exports.receiveEmailsHandler = async (req, res) => {
     const emails = await getEmails();
     res.status(200).json({ emails });
   } catch (error) {
-    console.error('Email receiving error:', error);
-    res.status(500).json({ error: 'Failed to fetch emails' });
+    console.error("Email receiving error:", error);
+    const isAuthFail =
+      error.textCode === "AUTHENTICATIONFAILED" ||
+      error.message?.includes("Invalid credentials");
+    res.status(500).json({
+      error: isAuthFail
+        ? "Gmail authentication failed. Set FROM_EMAIL and a Gmail App Password (not your login password) in backend .env. Enable IMAP in Gmail settings."
+        : error.message || "Failed to fetch emails",
+    });
   }
 };

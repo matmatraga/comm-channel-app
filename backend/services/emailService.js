@@ -12,19 +12,25 @@ if (!fs.existsSync(ATTACHMENTS_DIR)) {
   fs.mkdirSync(ATTACHMENTS_DIR, { recursive: true });
 }
 
+const getGmailCredentials = () => {
+  const user = process.env.FROM_EMAIL?.trim();
+  const rawPass = process.env.FROM_PASSWORD ?? "";
+  // Gmail app passwords are often copied as "xxxx xxxx xxxx xxxx" — IMAP needs no spaces
+  const password = rawPass.replace(/\s/g, "");
+  return { user, password };
+};
+
 const sendEmail = async ({ to, subject, text, attachments }) => {
+  const { user, password } = getGmailCredentials();
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: process.env.FROM_EMAIL,
-      pass: process.env.FROM_PASSWORD
-    },
+    auth: { user, pass: password },
   });
 
   const mailOptions = {
-    from: process.env.FROM_EMAIL,
+    from: user,
     to,
     subject,
     text,
@@ -36,10 +42,16 @@ const sendEmail = async ({ to, subject, text, attachments }) => {
 
 const getEmails = () => {
   return new Promise((resolve, reject) => {
+    const { user, password } = getGmailCredentials();
+
+    if (!user || !password) {
+      return reject(new Error("FROM_EMAIL and FROM_PASSWORD must be set in backend .env"));
+    }
+
     const imap = new Imap({
-      user: process.env.FROM_EMAIL,
-      password: process.env.FROM_PASSWORD,
-      host: 'imap.gmail.com',
+      user,
+      password,
+      host: "imap.gmail.com",
       port: 993,
       tls: true,
       tlsOptions: { rejectUnauthorized: false },
@@ -54,13 +66,13 @@ const getEmails = () => {
           return reject(err);
         }
 
-        imap.search(['UNSEEN', ['SINCE', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)]], (err, results) => {
+        imap.search(['ALL', ['SINCE', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)]], (err, results) => {
           if (err || !results.length) {
             imap.end();
             return resolve([]);
           }
 
-          const fetch = imap.fetch(results.slice(-10), { bodies: '', struct: true });
+          const fetch = imap.fetch(results.slice(-20), { bodies: '', struct: true });
 
           fetch.on('message', (msg) => {
             const promise = new Promise((res) => {
@@ -114,9 +126,10 @@ const getEmails = () => {
       });
     });
 
-    imap.once('error', reject);
+    imap.once("error", reject);
     imap.once('end', async () => {
       const emails = (await Promise.all(emailPromises)).filter(Boolean);
+      emails.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       resolve(emails);
     });
 
