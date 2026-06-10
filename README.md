@@ -1,225 +1,214 @@
-# Omni-Channel Communication App
+# OmniComm — Real-Time Communication Platform
 
-A full-stack communication platform supporting:
-- 📩 Email
-- 💬 Chat (with file sharing)
-- 📱 SMS (via Twilio)
-- 📞 Voice Calls (via Twilio)
-- 🌓 Dark & Light theme support
+A full-stack messenger with in-app WebRTC audio/video calls, file attachments, and an email demo — built to demonstrate production patterns for portfolio and freelance work.
 
-> Built using **MERN Stack (MongoDB, Express, React, Node.js)** and **Twilio APIs**.
+![CI](https://github.com/YOUR_USERNAME/comm-channel-app/actions/workflows/ci.yml/badge.svg)
 
----
+## Live Demo
 
-## 🌐 Live Demo
+> **Deploy:** See [Deployment](#deployment) below. After deploy, add your URL here:
+>
+> **Frontend:** `https://your-app.vercel.app`  
+> **Try it:** Log in as `demo1@omnicomm.app` or `demo2@omnicomm.app` (password: `Demo1234!`) in two browser tabs to test chat and calls.
 
-Hosted on **Render** and **Vercel**  
-> 🔗 Frontend: [https://your-frontend.vercel.app](https://your-frontend.vercel.app)  
-> 🔗 Backend: [https://omni-channel-app.onrender.com](https://omni-channel-app.onrender.com)
+## Demo Recording
 
----
+<!-- Uncomment after recording — see docs/DEMO.md -->
+<!-- ![OmniComm demo](./docs/demo.gif) -->
 
-## 📁 Project Structure
+> **Record a demo:** See [`docs/DEMO.md`](docs/DEMO.md) for a 30-second screen recording guide. Save as `docs/demo.gif` and uncomment the line above.
 
+## Case Study
+
+| | |
+|---|---|
+| **Problem** | Build a portfolio-grade messenger with in-app calls, without paid telecom APIs or services that require billing setup. |
+| **Constraints** | No Twilio/Daily billing; embeddable third-party call widgets blocked by lobby/CSP policies; JWT-only auth throughout. |
+| **Solution** | Custom WebRTC (`simple-peer`) with Socket.IO signaling, optimistic chat UI, JWT-protected attachments, and a shared Gmail demo inbox. |
+| **Trade-offs** | STUN-only WebRTC (may fail on strict NATs without TURN); shared email inbox for demo simplicity. |
+| **Outcome** | Deployable MERN app with real-time chat, ringing calls, file sharing, and email integration. |
+
+## Features
+
+- **Messenger-style chat** — conversation list, typing indicators, online presence, read receipts
+- **File attachments** — images with lightbox preview and download; JWT-protected file serving
+- **In-app audio/video calls** — WebRTC peer-to-peer with Socket.IO signaling and ringtone
+- **Email (demo)** — two-pane inbox, HTML rendering (DOMPurify), Nodemailer send + IMAP fetch
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph client [React Frontend]
+    ChatUI[Messenger UI]
+    CallUI[WebRTC Call Overlay]
+    SocketClient[Socket.IO Client]
+  end
+
+  subgraph server [Express Backend]
+    REST[REST API]
+    SocketServer[Socket.IO Signaling]
+    Auth[JWT Auth]
+  end
+
+  subgraph data [Data and Services]
+    MongoDB[(MongoDB)]
+    STUN[Google STUN]
+    Gmail[Nodemailer/IMAP]
+  end
+
+  ChatUI --> REST
+  ChatUI --> SocketClient
+  CallUI -->|WebRTC media| CallUI
+  CallUI -->|call_signal| SocketClient
+  SocketClient --> SocketServer
+  REST --> Auth
+  REST --> MongoDB
+  REST --> Gmail
+  CallUI --> STUN
+  SocketServer --> MongoDB
 ```
-omni-channel-app/
-├── backend/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   ├── sockets/
-│   ├── utils/
-│   └── server.js
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── context/
-│   │   ├── pages/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-└── README.md
-```
 
----
+## Key Technical Decisions
 
-## ⚙️ Setup Instructions
+- **WebRTC over embedded Jitsi** — Jitsi free tiers required payment methods or blocked iframe embeds (`membersOnly` lobby, CSP `frame-ancestors`). Custom `simple-peer` + Socket.IO signaling avoids third-party billing and embed restrictions.
+- **JWT socket auth** — Socket.IO middleware verifies tokens on connect; no anonymous sockets.
+- **Signaling vs media separation** — Socket.IO handles ring/accept/decline/signal exchange; WebRTC handles audio/video media directly between peers.
+- **Optimistic UI** — messages appear instantly with sending → delivered → seen states.
+- **Authenticated attachment URLs** — chat files fetched via axios + blob URLs (`img` tags cannot send JWT headers).
+- **HTML email sandbox** — incoming HTML rendered on a light “paper” surface in dark mode so inline email styles stay readable.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, Vite, Tailwind CSS, Socket.IO Client, simple-peer (WebRTC) |
+| Backend | Node.js, Express, Socket.IO, Mongoose |
+| Database | MongoDB |
+| Real-time | Socket.IO (chat + call signaling) |
+| In-app calls | WebRTC + Google STUN |
+| Email | Nodemailer + IMAP, DOMPurify |
+
+## Setup
 
 ### Prerequisites
-- Node.js
+
+- Node.js 18+
 - MongoDB
-- Vite (for frontend)
-- Twilio Account (for SMS/Voice)
-- Vercel (for frontend deployment)
-- Render or Railway (for backend deployment)
+- Gmail app password (optional, for email demo)
 
----
+### Backend
 
-### 🔧 Backend Setup
+```bash
+cd backend
+cp .env.example .env
+# Fill in your credentials
+npm install
+npm run dev
+```
 
-1. Go to `backend/`
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create `.env` file:
-   ```env
-   PORT=5000
-   MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/omnichannel
-   JWT_SECRET=your_jwt_secret
-   TWILIO_ACCOUNT_SID=your_twilio_sid
-   TWILIO_AUTH_TOKEN=your_twilio_auth_token
-   TWILIO_PHONE_NUMBER=your_twilio_phone_number
-   ```
-4. Run the server:
-   ```bash
-   npm run dev
-   ```
+Demo users (`demo1@omnicomm.app`, `demo2@omnicomm.app`) are created automatically on startup if they don't exist.
 
----
+### Frontend
 
-### 🌐 Frontend Setup
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
 
-1. Go to `frontend/`
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Run the app locally:
-   ```bash
-   npm run dev
-   ```
+### Environment Variables
 
----
+See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`](frontend/.env.example).
 
-## 💬 Chat Feature
+| Variable | Description |
+|----------|-------------|
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret for JWT signing |
+| `CLIENT_URL` | Frontend URL (CORS + OAuth redirect) |
+| `API_URL` | Backend public URL (production) |
+| `FROM_EMAIL` / `FROM_PASSWORD` | Shared Gmail for email demo |
+| `VITE_API_URL` | Backend URL for frontend |
+| `VITE_DEMO_URL` | Optional live demo URL shown on Home page |
 
-- Real-time 1:1 messaging using **Socket.IO**
-- File attachment support
-- Read receipt & timestamp
-- History fetching from MongoDB
-- Dark/light UI modes
+## Deployment
 
----
+### Frontend (Vercel)
 
-## 📩 Email Feature
+1. Import the repo and set **Root Directory** to `frontend`.
+2. Add env var: `VITE_API_URL=https://your-api.onrender.com`
+3. Optional: `VITE_DEMO_URL=https://your-app.vercel.app`
+4. Deploy — `vercel.json` handles SPA routing.
 
-- Send emails with multiple file attachments
-- View email history with collapsible UI
-- Backend uses **Nodemailer**
-- Email configuration is dynamic (supports `.env` or DB-based)
+### Backend (Render)
 
----
+1. Create a **Web Service** from this repo (or use [`render.yaml`](render.yaml)).
+2. Set **Root Directory** to `backend`.
+3. Add env vars from `.env.example` (`MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`, etc.).
+4. Set `CLIENT_URL` to your Vercel frontend URL.
+5. Set `API_URL` to your Render backend URL.
 
-## 📱 SMS Feature (via Twilio)
+### After deploy
 
-### Prerequisites:
-- [Sign up on Twilio](https://www.twilio.com/)
-- Get a **Verified Phone Number**
-- Setup your **Trial Number**
+- Update Google OAuth callback URLs if using Google login.
+- Allow Gmail app password on the demo account.
+- Demo users seed automatically on first backend boot.
+- Record a demo GIF — see [`docs/DEMO.md`](docs/DEMO.md).
 
-### Usage:
+## Socket Events
 
-#### 1. Sending SMS
-- Go to SMS tab in the UI
-- Enter recipient number (in E.164 format, e.g., `+639XXXXXXXXX`)
-- Type your message and click **Send**
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `private_message` | server → client | New message received |
+| `message_sent` | server → sender | Message saved confirmation |
+| `typing_start` / `typing_stop` | bidirectional | Typing indicators |
+| `message_read` / `read_receipt` | bidirectional | Read receipts |
+| `presence_update` | server → all | Online user list |
+| `call_invite` | server → callee | Incoming call ring |
+| `call_signal` | bidirectional | WebRTC signaling data |
+| `call_accepted` / `call_declined` | server → caller | Call response |
+| `call_ended` | server → partner | Call terminated |
 
-#### 2. Receiving SMS
-- Set your **Twilio Webhook URL** to:
-  ```
-  https://omni-channel-app.onrender.com/api/sms/receive
-  ```
-- This will automatically receive and log SMS messages into MongoDB and the UI
+## API Endpoints
 
----
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/register` | POST | No | Register user |
+| `/api/auth/login` | POST | No | Login |
+| `/api/chat/conversations` | GET | Yes | Conversation list |
+| `/api/chat/history/:id` | GET | Yes | Message history |
+| `/api/chat/upload` | POST | Yes | Upload attachment |
+| `/api/calls/start` | POST | Yes | Start in-app call |
+| `/api/calls/accept` | POST | Yes | Accept call |
+| `/api/emails/send` | POST | Yes | Send email |
+| `/api/emails/receive` | GET | Yes | Fetch inbox |
 
-## 📞 Voice Call Feature (via Twilio)
+## Email Demo Note
 
-### Prerequisites:
-- Enable **Programmable Voice**
-- Set **Voice webhook URL** on Twilio to:
-  ```
-  https://omni-channel-app.onrender.com/api/voice/receive
-  ```
+Email uses a **shared sender account** for demo purposes — all logged-in users see the same inbox. Inbox shows the **20 most recent emails** from the last 30 days (read + unread).
 
-### Usage:
+## Testing
 
-#### 1. Outbound Call
-- Go to **Voice** tab
-- Enter destination number (in international format)
-- Click **Call Now**
-- Your Twilio number will initiate the call
+```bash
+# Backend
+cd backend && npm test
 
-#### 2. Inbound Call
-- When a call is received on your Twilio number, it will be auto-logged to the Voice History
+# Frontend
+cd frontend && npm test
+```
 
----
+## Out of Scope (by design)
 
-## 🧪 API Overview
+SMS and PSTN phone integrations were intentionally excluded — they require paid telecom infrastructure and public webhooks.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/email/send` | POST | Send an email |
-| `/api/email/history` | GET | Fetch sent emails |
-| `/api/chat/upload` | POST | Upload chat file |
-| `/api/chat/download/:filename` | GET | Download chat file |
-| `/api/chat/history/:receiverId` | GET | Get chat history |
-| `/api/sms/send` | POST | Send SMS |
-| `/api/sms/receive` | POST | Receive SMS via webhook |
-| `/api/voice/call` | POST | Initiate outbound call |
-| `/api/voice/receive` | POST | Receive inbound call (Twilio webhook) |
+## Roadmap
 
----
+- TURN server for WebRTC behind strict NATs
+- Group chats and group calls
+- Message search, reactions, threads
+- TypeScript migration
 
-## 🖼️ UI Features
+## License
 
-- Fully responsive design
-- Tailwind CSS + React Icons
-- Consistent dark/light mode styling
-- Auto-scroll chatbox
-- Image and file preview
-- Styled select dropdowns
-
----
-
-## 🔐 Authentication
-
-- JWT-based login system
-- Token stored in `localStorage`
-- Protected routes for Chat, SMS, Email, Voice pages
-
----
-
-## 🚀 Deployment Notes
-
-### Vercel (Frontend)
-- Add rewrite rule:
-  ```
-  vercel.json
-  {
-    "rewrites": [
-      { "source": "/(.*)", "destination": "/" }
-    ]
-  }
-  ```
-
-### Render (Backend)
-- Add build & start command:
-  ```bash
-  npm install && npm run dev
-  ```
-
----
-
-## 📌 Credits
-
-- Built by **Matthew Ramon Raga** during residency assessment.
-- Inspired by modern communication platforms.
-- Uses public libraries and APIs (Twilio, Nodemailer, Socket.IO, etc.)
-
----
-
-## 📫 Contact
-
-Feel free to reach out via LinkedIn or GitHub if you want to collaborate or have feedback.
+ISC
