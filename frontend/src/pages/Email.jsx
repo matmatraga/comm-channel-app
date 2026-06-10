@@ -1,45 +1,41 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
-import EmailAccordion from "../components/EmailAccordion";
+import { useState, useEffect, useCallback } from "react";
+import api from "../lib/api";
+import toast from "react-hot-toast";
+import EmailCompose from "../components/email/EmailCompose";
+import EmailInboxList from "../components/email/EmailInboxList";
+import EmailReadingPane from "../components/email/EmailReadingPane";
 
 const Email = () => {
-  const [formData, setFormData] = useState({
-    to: "",
-    subject: "",
-    text: "",
-  });
+  const [formData, setFormData] = useState({ to: "", subject: "", text: "" });
   const [files, setFiles] = useState([]);
   const [sending, setSending] = useState(false);
   const [emails, setEmails] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [loadingInbox, setLoadingInbox] = useState(true);
+  const [mobileView, setMobileView] = useState("inbox");
 
-  useEffect(() => {
-    const fetchEmails = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "https://omni-channel-app.onrender.com/api/emails/receive",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setEmails(res.data.emails || []);
-      } catch (err) {
-        console.error("Error fetching emails:", err);
-        toast.error("❌ Failed to fetch inbox");
-      }
-    };
-
-    fetchEmails();
+  const fetchEmails = useCallback(async () => {
+    setLoadingInbox(true);
+    try {
+      const res = await api.get("/api/emails/receive");
+      const list = res.data.emails || [];
+      setEmails(list);
+      setSelectedIndex((prev) =>
+        prev !== null && prev < list.length ? prev : list.length ? 0 : null
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to fetch inbox");
+    } finally {
+      setLoadingInbox(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchEmails();
+  }, [fetchEmails]);
+
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleFileChange = (e) => setFiles(e.target.files);
@@ -47,7 +43,7 @@ const Email = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
-    toast.loading("📤 Sending email...", { id: "email-send" });
+    toast.loading("Sending email...", { id: "email-send" });
 
     const data = new FormData();
     data.append("to", formData.to);
@@ -58,104 +54,100 @@ const Email = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "https://omni-channel-app.onrender.com/api/emails/send",
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      toast.success("✅ Email sent successfully!", { id: "email-send" });
+      await api.post("/api/emails/send", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Email sent!", { id: "email-send" });
       setFormData({ to: "", subject: "", text: "" });
       setFiles([]);
+      await fetchEmails();
     } catch (err) {
-      console.error("Error sending email:", err);
-      const msg = err.response?.data?.error || "Failed to send email.";
-      toast.error(`❌ ${msg}`, { id: "email-send" });
+      toast.error(err.response?.data?.error || "Failed to send email.", {
+        id: "email-send",
+      });
     } finally {
       setSending(false);
     }
   };
 
+  const handleSelectEmail = (index) => {
+    setSelectedIndex(index);
+    setMobileView("read");
+  };
+
+  const selectedEmail =
+    selectedIndex !== null ? emails[selectedIndex] : null;
+
   return (
-    <main className="min-h-screen py-10 px-4 bg-gradient-to-br from-blue-100 via-purple-100 to-white text-gray-900 dark:from-gray-900 dark:via-gray-800 dark:to-black dark:text-white transition-colors duration-300">
-      <Toaster position="top-right" />
-
-      <div className="max-w-4xl mx-auto space-y-10">
-        {/* Email Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-semibold mb-4">✉️ Send Email</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">To</label>
-              <input
-                type="email"
-                name="to"
-                placeholder="Enter recipient email"
-                value={formData.to}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Subject</label>
-              <input
-                type="text"
-                name="subject"
-                placeholder="Enter subject"
-                value={formData.subject}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Message</label>
-              <textarea
-                name="text"
-                placeholder="Type your message here"
-                value={formData.text}
-                onChange={handleChange}
-                rows={5}
-                required
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Attachments
-              </label>
-              <input
-                type="file"
-                multiple
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 dark:text-gray-300"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={sending}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
-            >
-              {sending ? "Sending..." : "Send Email"}
-            </button>
-          </form>
+    <main className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900 transition-colors">
+      <div className="max-w-6xl mx-auto h-[calc(100vh-4rem)] p-2 md:p-4">
+        <div className="mb-2 md:mb-3 px-1">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Email (Demo)
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Shared demo inbox — not per-user mailboxes
+          </p>
         </div>
 
-        {/* Inbox Section */}
-        <div>
-          <h3 className="text-xl font-semibold mb-4">📥 Inbox</h3>
-          <EmailAccordion emails={emails} />
+        {/* Mobile tabs */}
+        <div className="flex md:hidden gap-1 mb-2">
+          {["compose", "inbox", "read"].map((view) => (
+            <button
+              key={view}
+              type="button"
+              onClick={() => setMobileView(view)}
+              className={`flex-1 py-2 text-xs font-medium rounded-lg capitalize ${
+                mobileView === view
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              {view}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex h-[calc(100%-3.5rem)] md:h-[calc(100%-2.5rem)] bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border dark:border-gray-700">
+          {/* Compose */}
+          <aside
+            className={`w-full md:w-72 lg:w-80 border-r dark:border-gray-700 flex-shrink-0 ${
+              mobileView === "compose" ? "flex flex-col" : "hidden md:flex md:flex-col"
+            }`}
+          >
+            <EmailCompose
+              formData={formData}
+              files={files}
+              sending={sending}
+              onChange={handleChange}
+              onFileChange={handleFileChange}
+              onSubmit={handleSubmit}
+            />
+          </aside>
+
+          {/* Inbox list */}
+          <aside
+            className={`w-full md:w-72 lg:w-80 border-r dark:border-gray-700 flex-shrink-0 ${
+              mobileView === "inbox" ? "flex flex-col" : "hidden md:flex md:flex-col"
+            }`}
+          >
+            <EmailInboxList
+              emails={emails}
+              selectedIndex={selectedIndex}
+              onSelect={handleSelectEmail}
+              onRefresh={fetchEmails}
+              loading={loadingInbox}
+            />
+          </aside>
+
+          {/* Reading pane */}
+          <section
+            className={`flex-1 min-w-0 ${
+              mobileView === "read" ? "flex flex-col" : "hidden md:flex md:flex-col"
+            }`}
+          >
+            <EmailReadingPane email={selectedEmail} />
+          </section>
         </div>
       </div>
     </main>

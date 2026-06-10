@@ -27,3 +27,21 @@
 html {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* HTML emails ship with inline colors — render on a light surface for readability */
+.email-html-content {
+  color: #1e293b;
+}
+
+.email-html-content a {
+  color: #2563eb;
+}
+
+.email-html-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.email-html-content table {
+  max-width: 100%;
+}
