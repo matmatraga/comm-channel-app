@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: omnicomm-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: FROM_PASSWORD
+        sync: false
+      - key: JITSI_DOMAIN
+        value: meet.jit.si
