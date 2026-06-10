@@ -1,292 +1,292 @@
-import React, { useState, useEffect, useRef } from "react";
-import io from "socket.io-client";
-import axios from "axios";
+import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../lib/api";
 import { useTheme } from "../context/ThemeContext";
-import { Paperclip, Send, User2 } from "lucide-react";
-
-const socket = io("https://omni-channel-app.onrender.com", {
-  auth: { token: localStorage.getItem("token") || "" },
-});
+import { useSocket } from "../context/SocketContext";
+import { useCall } from "../hooks/useCall";
+import ConversationList from "../components/chat/ConversationList";
+import ChatThread from "../components/chat/ChatThread";
 
 const ChatBox = () => {
   const { theme } = useTheme();
-  const [message, setMessage] = useState("");
-  const [file, setFile] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [currentUser, setCurrentUser] = useState({});
+  const { socket, onlineUsers, isOnline } = useSocket();
+  const {
+    startCall,
+  } = useCall();
+
+  const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
-  const [selectedReceiver, setSelectedReceiver] = useState(null);
-  const messageContainerRef = useRef();
+  const [conversations, setConversations] = useState([]);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [mobileShowThread, setMobileShowThread] = useState(false);
+  const messageContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const { data: user } = await axios.get(
-          "https://omni-channel-app.onrender.com/api/users/currentUser",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        setCurrentUser(user);
-
-        const { data: userList } = await axios.get(
-          "https://omni-channel-app.onrender.com/api/users/details",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        setUsers(userList);
-      } catch (error) {
-        console.error("❌ Error fetching user data:", error);
-      }
-    };
-
-    fetchUserData();
-
-    socket.on("private_message", (data) => {
-      console.log(data);
-      const incoming = {
-        from: data.from,
-        content: data.content,
-        file: data.file,
-        timestamp: new Date(data.timestamp || Date.now()).toLocaleString(),
-      };
-      setMessages((prev) => [...prev, incoming]);
-    });
-
-    return () => socket.off("private_message");
+  const fetchConversations = useCallback(async () => {
+    try {
+      const { data } = await api.get("/api/chat/conversations");
+      setConversations(data.conversations || []);
+    } catch (err) {
+      console.error("Failed to fetch conversations:", err);
+    } finally {
+      setLoadingConversations(false);
+    }
   }, []);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      console.log("📡 Fetching history for:", selectedReceiver?._id);
-      if (!selectedReceiver?._id) return;
-
+    const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const { data } = await axios.get(
-          `https://omni-channel-app.onrender.com/api/chat/history/${selectedReceiver._id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        console.log("✅ Chat history fetched:", data);
-
-        const formatted = data.chats.map((msg) => ({
-          from: msg.sender,
-          content: msg.message,
-          file: msg.file,
-          timestamp: new Date(msg.createdAt).toLocaleString(),
-        }));
-
-        setMessages(formatted);
+        const [userRes, usersRes] = await Promise.all([
+          api.get("/api/users/currentUser"),
+          api.get("/api/users/details"),
+        ]);
+        setCurrentUser(userRes.data);
+        setUsers(usersRes.data);
+        await fetchConversations();
       } catch (err) {
-        console.error("❌ Failed to fetch chat history:", err);
+        console.error("Init error:", err);
+      }
+    };
+    init();
+  }, [fetchConversations]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onMessage = (data) => {
+      const incoming = {
+        _id: data._id,
+        from: data.from,
+        content: data.content,
+        file: data.file,
+        timestamp: data.timestamp || new Date(),
+        isRead: data.isRead,
+        status: "delivered",
+      };
+
+      if (
+        selectedPartner &&
+        data.from?._id === selectedPartner._id
+      ) {
+        setMessages((prev) => [...prev, incoming]);
+        const unreadIds = [data._id];
+        socket.emit("message_read", {
+          messageIds: unreadIds,
+          partnerId: selectedPartner._id,
+        });
+      }
+      fetchConversations();
+    };
+
+    const onMessageSent = (data) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.tempId
+            ? {
+                ...m,
+                _id: data._id,
+                content: data.content,
+                file: data.file,
+                status: "delivered",
+                timestamp: data.timestamp,
+                tempId: undefined,
+              }
+            : m
+        )
+      );
+      fetchConversations();
+    };
+
+    const onReadReceipt = ({ messageIds }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          messageIds.includes(m._id?.toString()) ? { ...m, isRead: true } : m
+        )
+      );
+    };
+
+    const onTypingStart = ({ from }) => {
+      if (selectedPartner && from === selectedPartner._id) {
+        setIsTyping(true);
       }
     };
 
-    fetchHistory();
-  }, [selectedReceiver]);
+    const onTypingStop = ({ from }) => {
+      if (selectedPartner && from === selectedPartner._id) {
+        setIsTyping(false);
+      }
+    };
+
+    socket.on("private_message", onMessage);
+    socket.on("message_sent", onMessageSent);
+    socket.on("read_receipt", onReadReceipt);
+    socket.on("typing_start", onTypingStart);
+    socket.on("typing_stop", onTypingStop);
+
+    return () => {
+      socket.off("private_message", onMessage);
+      socket.off("message_sent", onMessageSent);
+      socket.off("read_receipt", onReadReceipt);
+      socket.off("typing_start", onTypingStart);
+      socket.off("typing_stop", onTypingStop);
+    };
+  }, [socket, selectedPartner, fetchConversations]);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!selectedPartner?._id) {
+        setMessages([]);
+        return;
+      }
+      setLoadingMessages(true);
+      try {
+        const { data } = await api.get(
+          `/api/chat/history/${selectedPartner._id}`
+        );
+        const formatted = data.chats.map((msg) => ({
+          _id: msg._id,
+          from: msg.sender,
+          content: msg.message,
+          file: msg.file,
+          timestamp: msg.createdAt,
+          isRead: msg.isRead,
+          status: "delivered",
+        }));
+        setMessages(formatted);
+
+        const unreadIds = formatted
+          .filter((m) => !m.isRead && m.from?._id === selectedPartner._id)
+          .map((m) => m._id);
+        if (unreadIds.length && socket) {
+          socket.emit("message_read", {
+            messageIds: unreadIds,
+            partnerId: selectedPartner._id,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+    loadHistory();
+  }, [selectedPartner, socket]);
 
   useEffect(() => {
     if (messageContainerRef.current) {
       messageContainerRef.current.scrollTop =
         messageContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
-  const handleFileUpload = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await axios.post(
-      "https://omni-channel-app.onrender.com/api/chat/upload",
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-
-    return res.data.filename;
-  };
-
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!currentUser._id || !selectedReceiver?._id) return;
+  const handleSend = async (message, file) => {
+    if (!currentUser?._id || !selectedPartner?._id) return;
 
     let uploadedFilename = null;
     if (file) {
-      uploadedFilename = await handleFileUpload(file);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/api/chat/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      uploadedFilename = res.data.filename;
     }
 
-    const content = {
-      message,
-      file: uploadedFilename || null,
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = {
+      tempId,
+      from: currentUser,
+      content: message,
+      file: uploadedFilename,
+      timestamp: new Date(),
+      status: "sending",
     };
+    setMessages((prev) => [...prev, optimistic]);
 
     socket.emit("private_message", {
-      to: selectedReceiver._id,
-      content,
+      to: selectedPartner._id,
+      content: { message, file: uploadedFilename },
     });
+  };
 
-    setMessage("");
-    setFile(null);
+  const handleTypingStart = () => {
+    if (!selectedPartner || !socket) return;
+    socket.emit("typing_start", { to: selectedPartner._id });
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("typing_stop", { to: selectedPartner._id });
+    }, 2000);
+  };
+
+  const handleTypingStop = () => {
+    if (!selectedPartner || !socket) return;
+    clearTimeout(typingTimeoutRef.current);
+    socket.emit("typing_stop", { to: selectedPartner._id });
+  };
+
+  const handleSelectPartner = (partner) => {
+    setSelectedPartner(partner);
+    setMobileShowThread(true);
+  };
+
+  const handleStartCall = async (type) => {
+    if (!selectedPartner) return;
+    try {
+      await startCall(selectedPartner._id, type);
+    } catch {
+      // toast handled in hook
+    }
   };
 
   return (
     <main
-      className={`min-h-screen flex items-center justify-center px-4 py-6 transition-colors duration-300 
-      ${
-        theme === "dark" ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"
+      className={`min-h-[calc(100vh-4rem)] transition-colors duration-300 ${
+        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
       }`}
     >
-      <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Select Recipient
-          </label>
-          <select
-            className="w-full p-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600"
-            value={selectedReceiver?._id || ""}
-            onChange={(e) => {
-              const user = users.find((u) => u._id === e.target.value);
-              setSelectedReceiver(user);
-            }}
+      <div className="max-w-6xl mx-auto h-[calc(100vh-4rem)]">
+        <div className="flex h-full bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
+          <div
+            className={`w-full md:w-80 lg:w-96 border-r dark:border-gray-700 flex-shrink-0 ${
+              mobileShowThread ? "hidden md:flex md:flex-col" : "flex flex-col"
+            }`}
           >
-            <option value="" disabled>
-              Select a user
-            </option>
-            {users
-              .filter((user) => user._id !== currentUser._id)
-              .map((user) => (
-                <option key={user._id} value={user._id}>
-                  {user.name}
-                </option>
-              ))}
-          </select>
-        </div>
-
-        <div
-          ref={messageContainerRef}
-          className="h-80 overflow-y-auto space-y-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg"
-        >
-          {messages.map((msg, i) => {
-            const isSender = msg.from?._id === currentUser._id;
-
-            return (
-              <div
-                key={i}
-                className={`flex flex-col ${
-                  isSender ? "items-end" : "items-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[70%] px-4 py-2 rounded-lg shadow
-          ${
-            isSender
-              ? theme === "dark"
-                ? "bg-blue-700 text-white"
-                : "bg-blue-100 text-blue-900"
-              : theme === "dark"
-              ? "bg-gray-600 text-gray-100"
-              : "bg-gray-200 text-gray-900"
-          }`}
-                >
-                  <div className="text-sm font-semibold mb-1 flex items-center gap-1">
-                    <User2 className="h-4 w-4" />
-                    {msg.from?.name || "User"}
-                  </div>
-                  <div className="text-sm">{msg.content}</div>
-
-                  {msg.file && (
-                    <div className="flex items-center gap-2 mt-2 bg-gray-100 dark:bg-gray-600 p-2 rounded-md max-w-full">
-                      {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(msg.file) && (
-                        <img
-                          src={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
-                          alt="attachment"
-                          className="w-12 h-12 rounded object-cover"
-                        />
-                      )}
-                      <a
-                        href={`https://omni-channel-app.onrender.com/api/chat/download/${msg.file}`}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 dark:text-blue-300 underline break-all truncate max-w-full"
-                      >
-                        {msg.file}
-                      </a>
-                    </div>
-                  )}
-                  <div className="text-xs mt-1 text-gray-300">
-                    {msg.timestamp}
-                  </div>
-                </div>
-
-                {/* Read receipt (only show on sender's messages) */}
-                {isSender && (
-                  <div className="text-xs text-gray-400 mt-1 pr-1">
-                    {msg.isRead ? "Seen" : "Delivered"}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <form onSubmit={sendMessage} className="flex items-center gap-2">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message"
-            className="flex-1 p-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600"
-            required
-          />
-          <div className="flex items-center gap-2 flex-wrap">
-            <label className="cursor-pointer flex items-center gap-1">
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="hidden"
-              />
-              <Paperclip className="h-5 w-5 text-gray-500 hover:text-blue-600" />
-            </label>
-
-            {file && (
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs max-w-[200px] overflow-x-auto">
-                <span className="whitespace-nowrap truncate text-gray-700 dark:text-gray-200">
-                  {file.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFile(null)}
-                  className="text-red-500 font-bold hover:text-red-700"
-                  title="Remove file"
-                >
-                  ×
-                </button>
-              </div>
-            )}
+            <ConversationList
+              conversations={conversations}
+              users={users}
+              currentUser={currentUser}
+              selectedPartner={selectedPartner}
+              onlineUsers={onlineUsers}
+              onSelectPartner={handleSelectPartner}
+              loading={loadingConversations}
+            />
           </div>
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition"
+
+          <div
+            className={`flex-1 flex flex-col ${
+              mobileShowThread ? "flex" : "hidden md:flex"
+            }`}
           >
-            <Send className="h-4 w-4" />
-            Send
-          </button>
-        </form>
+            <ChatThread
+              partner={selectedPartner}
+              messages={messages}
+              currentUser={currentUser}
+              isOnline={selectedPartner ? isOnline(selectedPartner._id) : false}
+              isTyping={isTyping}
+              loading={loadingMessages}
+              onSend={handleSend}
+              onTypingStart={handleTypingStart}
+              onTypingStop={handleTypingStop}
+              onBack={() => setMobileShowThread(false)}
+              onStartCall={handleStartCall}
+              messageContainerRef={messageContainerRef}
+              showBack
+            />
+          </div>
+        </div>
       </div>
     </main>
   );
