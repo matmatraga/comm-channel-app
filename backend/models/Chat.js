@@ -12,8 +12,20 @@ const chatSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    message: { type: String, required: true },
+    message: {
+      type: String,
+      default: "",
+      validate: {
+        validator: function (v) {
+          return (v && v.trim().length > 0) || !!this.file;
+        },
+        message: "Either a message or file is required",
+      },
+    },
     file: { type: String },
+    isRead: { type: Boolean, default: false },
+    deliveredAt: { type: Date },
+    readAt: { type: Date },
   },
   { timestamps: true }
 );
