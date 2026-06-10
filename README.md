@@ -2,21 +2,16 @@
 
 A full-stack messenger with in-app WebRTC audio/video calls, file attachments, and an email demo — built to demonstrate production patterns for portfolio and freelance work.
 
-![CI](https://github.com/YOUR_USERNAME/comm-channel-app/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/matmatraga/comm-channel-app/actions/workflows/ci.yml/badge.svg)
 
-## Live Demo
+<!-- ## Live Demo
 
-> **Deploy:** See [Deployment](#deployment) below. After deploy, add your URL here:
->
-> **Frontend:** `https://your-app.vercel.app`  
-> **Try it:** Log in as `demo1@omnicomm.app` or `demo2@omnicomm.app` (password: `Demo1234!`) in two browser tabs to test chat and calls.
+**Frontend:** https://your-app.vercel.app  
+Log in as `demo1@omnicomm.app` or `demo2@omnicomm.app` (password: `Demo1234!`) in two browser tabs to test chat and calls. -->
 
-## Demo Recording
+<!-- ## Demo Recording
 
-<!-- Uncomment after recording — see docs/DEMO.md -->
-<!-- ![OmniComm demo](./docs/demo.gif) -->
-
-> **Record a demo:** See [`docs/DEMO.md`](docs/DEMO.md) for a 30-second screen recording guide. Save as `docs/demo.gif` and uncomment the line above.
+![OmniComm demo](./docs/demo.gif) -->
 
 ## Case Study
 
@@ -154,7 +149,7 @@ See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`]
 - Update Google OAuth callback URLs if using Google login.
 - Allow Gmail app password on the demo account.
 - Demo users seed automatically on first backend boot.
-- Record a demo GIF — see [`docs/DEMO.md`](docs/DEMO.md).
+<!-- - Record a demo GIF — see [`docs/DEMO.md`](docs/DEMO.md). -->
 
 ## Socket Events
 
