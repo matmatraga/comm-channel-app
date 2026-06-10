@@ -7,23 +7,24 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const path = require("path");
-const Socket = require("./middlewares/io");
+const setupSocket = require("./middlewares/io");
+const { seedDemoUsers } = require("./utils/seedDemoUsers");
 
-// Load env variables and config
 dotenv.config();
 require("./config/passport");
 
-// App & Server Initialization
 const app = express();
 const server = http.createServer(app);
+
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: allowedOrigin,
     credentials: true,
   },
 });
 
-// Attach io to request
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -31,10 +32,9 @@ app.use((req, res, next) => {
 
 app.set("io", io);
 
-// Middlewares
 app.use(
   cors({
-    origin: "*",
+    origin: allowedOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -55,26 +55,29 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serve static files from /uploads/chat
 app.use("/uploads/chat", express.static(path.join(__dirname, "uploads/chat")));
 
-// Routes
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", service: "omnicomm-api" });
+});
+
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/emails", require("./routes/emailRoutes"));
 app.use("/api/attachments", require("./routes/attachmentRoutes"));
-app.use("/api/chats", require("./routes/chatRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/sms", require("./routes/smsRoutes"));
-app.use("/api/voice", require("./routes/voiceRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes"));
+app.use("/api/calls", require("./routes/callRoutes"));
 
-// Socket.IO Logic
-Socket(io);
+setupSocket(io);
 
-// MongoDB Connection + Server Start
+const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
-    server.listen(5000, () => console.log("🚀 Server running on port 5000"));
+  .then(async () => {
+    await seedDemoUsers();
+    server.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
   })
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => console.error("MongoDB connection error:", err));
