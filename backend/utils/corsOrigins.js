@@ -1,26 +1,5 @@
-const fs = require("fs");
-const path = require("path");
-
-const DEBUG_LOG = path.join(__dirname, "..", "..", "debug-8bc161.log");
-
 const normalizeOrigin = (origin) =>
   origin ? origin.trim().replace(/\/+$/, "") : origin;
-
-const debugLog = (location, message, data, hypothesisId) => {
-  const entry = {
-    sessionId: "8bc161",
-    location,
-    message,
-    data,
-    hypothesisId,
-    timestamp: Date.now(),
-  };
-  try {
-    fs.appendFileSync(DEBUG_LOG, `${JSON.stringify(entry)}\n`);
-  } catch {
-    // ignore local log failures on hosted runtimes
-  }
-};
 
 const getAllowedOrigins = () => {
   const raw = process.env.CLIENT_URL || "http://localhost:5173";
@@ -55,64 +34,27 @@ const getVercelPreviewPattern = (allowedOrigins) => {
 
 const isOriginAllowed = (origin, allowedOrigins) => {
   const normalizedOrigin = normalizeOrigin(origin);
-  if (!normalizedOrigin) return { allowed: true, matchedVia: "no-origin" };
+  if (!normalizedOrigin) return true;
 
-  if (allowedOrigins.includes(normalizedOrigin)) {
-    return { allowed: true, matchedVia: "exact" };
-  }
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
 
   const previewPattern = getVercelPreviewPattern(allowedOrigins);
-  if (previewPattern?.test(normalizedOrigin)) {
-    return { allowed: true, matchedVia: "vercel-preview" };
-  }
-
-  return { allowed: false, matchedVia: null };
+  return previewPattern?.test(normalizedOrigin) ?? false;
 };
 
-const createCorsOriginHandler = (allowedOrigins) => {
-  const previewPattern = getVercelPreviewPattern(allowedOrigins);
+const createCorsOriginHandler = (allowedOrigins) => (origin, callback) => {
+  const normalizedOrigin = normalizeOrigin(origin);
 
-  return (origin, callback) => {
-    const { allowed, matchedVia } = isOriginAllowed(origin, allowedOrigins);
-    const normalizedOrigin = normalizeOrigin(origin);
+  if (isOriginAllowed(origin, allowedOrigins)) {
+    callback(null, normalizedOrigin);
+    return;
+  }
 
-    // #region agent log
-    debugLog("corsOrigins.js:createCorsOriginHandler", "CORS origin check", {
-      requestOrigin: origin || null,
-      normalizedOrigin: normalizedOrigin || null,
-      allowedOrigins,
-      allowed,
-      matchedVia,
-      previewPattern: previewPattern?.source || null,
-    }, "H3");
-    // #endregion
-
-    if (allowed) {
-      callback(null, normalizedOrigin);
-      return;
-    }
-
-    callback(new Error(`CORS blocked for origin: ${origin}`));
-  };
+  callback(new Error(`CORS blocked for origin: ${origin}`));
 };
 
 const logCorsStartup = (allowedOrigins) => {
   const previewPattern = getVercelPreviewPattern(allowedOrigins);
-
-  // #region agent log
-  debugLog(
-    "corsOrigins.js:logCorsStartup",
-    "CORS startup configuration",
-    {
-      clientUrlRaw: process.env.CLIENT_URL ?? null,
-      allowedOrigins,
-      previewPattern: previewPattern?.source || null,
-      allowVercelPreviews: process.env.ALLOW_VERCEL_PREVIEWS !== "false",
-    },
-    "H3"
-  );
-  // #endregion
-
   console.log("[cors] allowed origins:", allowedOrigins.join(", "));
   if (previewPattern) {
     console.log("[cors] vercel preview pattern:", previewPattern.source);
@@ -126,5 +68,4 @@ module.exports = {
   createCorsOriginHandler,
   logCorsStartup,
   normalizeOrigin,
-  debugLog,
 };
