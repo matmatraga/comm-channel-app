@@ -9,6 +9,11 @@ const passport = require("passport");
 const path = require("path");
 const setupSocket = require("./middlewares/io");
 const { seedDemoUsers } = require("./utils/seedDemoUsers");
+const {
+  getAllowedOrigins,
+  createCorsOriginHandler,
+  logCorsStartup,
+} = require("./utils/corsOrigins");
 
 dotenv.config();
 require("./config/passport");
@@ -16,11 +21,13 @@ require("./config/passport");
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = getAllowedOrigins();
+const corsOrigin = createCorsOriginHandler(allowedOrigins);
+logCorsStartup(allowedOrigins);
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: corsOrigin,
     credentials: true,
   },
 });
@@ -34,7 +41,7 @@ app.set("io", io);
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: corsOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
